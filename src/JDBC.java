@@ -12,7 +12,7 @@ public class JDBC {
 
     public void connect() {
         // check connection
-        String url = "jdbc:mysql://localhost:3306/";   //to do cjange your database mnamew
+        String url = "jdbc:mysql://localhost:3306/statement_db";   //to do cjange your database mnamew
         String username = "root";
         String password = "";
 

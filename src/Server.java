@@ -238,7 +238,7 @@ public class Server {
    
             
 
-            String sql = "SELECT * FROM users WHERE Username = ? AND password = ?";
+            String sql = "SELECT * FROM members WHERE username = ? AND password = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, username);
             statement.setString(2, password);
@@ -526,6 +526,8 @@ public class Server {
         }
         return 0;  //returns a zero if it does not exist
     }
+
+////put methods here
 
 
 }
