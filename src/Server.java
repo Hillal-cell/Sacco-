@@ -575,6 +575,206 @@ public class Server {
         return 0;  //returns a zero if it does not exist
     }
 
+    //method to request for a loan and also return a loanApplication Number
+    private static String LoanRequest(String username,int amountrequesting, int pymentperiod){
+        String generatedLoanApplicationNumber =null;
+        
+        
+        
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+            String querry = "insert into Loanrequest (username, amountrequesting, paymentperiod) values (?,?,?)";
+            PreparedStatement insertStatement = connection.prepareStatement(querry);
+            insertStatement.setString(1, username);
+            insertStatement.setInt(2, amountrequesting);
+            insertStatement.setInt(3, pymentperiod);
+            insertStatement.executeUpdate();
+
+            
+
+            int rowsAffected = insertStatement.executeUpdate();
+
+            //fetching the generated loan application number
+            if (rowsAffected > 0) {
+                String fetchQuery = "SELECT LoanAppNumber FROM LoanRequest WHERE username = ? AND amountrequesting = ? AND paymentperiod = ?";
+                PreparedStatement fetchStatement = connection.prepareStatement(fetchQuery);
+                fetchStatement.setString(1, username);
+                fetchStatement.setInt(2, amountrequesting);
+                fetchStatement.setInt(3, pymentperiod);
+
+                ResultSet resultSet = fetchStatement.executeQuery();
+                if (resultSet.next()) {
+                    generatedLoanApplicationNumber = resultSet.getString("LoanAppNumber");
+                }else{
+                    return "Loan Application number not found";
+                }
+                fetchStatement.close();
+            }
+
+            //System.out.println(generatedLoanApplicationNumber);
+           
+            return generatedLoanApplicationNumber;
+           
+            
+        } catch (Exception e) {
+            System.out.println("Denied :"+e.getMessage());
+
+            return "Error :";
+        }
+
+        
+
+    }
+
+
+    //method to count the number of loan requests from the loan requests
+    private static int countLoanRequests(){
+        int counted=-1;
+        
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+            String querry = "SELECT count(*)  from Loanrequest";
+            PreparedStatement statement = connection.prepareStatement(querry);
+            ResultSet result =  statement.executeQuery();
+
+            if (result.next()) {
+                counted = result.getInt("count(*)");
+                return counted;
+                
+            }
+            
+            
+        } catch (Exception e) {
+            System.out.println("Eror :"+e.getMessage());
+            
+        }
+        
+        return 0;
+    }
+
+
+    //method to calculate the total vailable funds in the deposits table as the total available funds
+    private static int availableFunds(){
+
+        int totalSaccoFunds =-1;
+
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+            String querry ="select sum(amount) from deposits";
+            PreparedStatement statement = connection.prepareStatement(querry);
+            ResultSet result = statement.executeQuery();
+
+            if (result.next()) {
+                totalSaccoFunds = result.getInt("sum(amount)");
+                return totalSaccoFunds;
+            }
+
+
+            
+        } catch (Exception e) {
+            System.out.println("Error :"+e.getMessage());
+        }
+        return 0;
+
+    }
+
+
+
+
+
+    // //method to calculate percentage loan progress 
+    private static double loanprogress(int monthsCleared,int expectedMonths){
+        
+        double Ploanprogress;
+
+        Ploanprogress = (monthsCleared/expectedMonths)*100;
+
+        return Ploanprogress;
+
+
+    }
+
+
+    // //method to calculate contribution progress
+     private static double contributionProg(){
+        int totalamountcontributed = getFinalBalance(null);
+        int totalsaccofds = availableFunds();
+        double ContProgress ;
+
+        ContProgress = (totalamountcontributed/totalsaccofds)*100;
+
+
+       
+
+        return ContProgress;
+    }
+
+
+
+
+    //loanDistribution method
+    private static String  LoanDistribution(){
+        int available_funds = availableFunds();
+        int LoanRequestNumbers = countLoanRequests();
+        double contProgres = contributionProg();
+      //  double loanPrgs = loanprogress(available_funds, LoanRequestNumbers);  // this is required after someone has gotten the loan and is  now paying 
+
+        if (LoanRequestNumbers >= 10 && available_funds >= 2000000) {
+
+            if (contProgres < 0.5) {
+                return "Low contribution progress";
+            }else if (contProgres == 0.5) {
+                return "Average contribution progress";
+            }else {
+                return "Better contribution progress";
+            }
+
+
+        }else {
+            return "System still under Loan Distribution ";
+        }
+
+        
+       
+        
+    }
+
+
+
+
+
+    //method to check whether the input loanApplication number is valid
+    private static String validateLaonApplicationNumberofCheckStatus(String LoanAppNo){
+
+        String gottenApplicationNumber =null;
+
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+
+            String querry = "select LoanAppNumber from LoanRequest where LoanAppNumber =?";
+            PreparedStatement statement =connection.prepareStatement(querry);
+            statement.setString(1,LoanAppNo);
+            ResultSet result = statement.executeQuery();
+
+            if (result.next()) {
+                gottenApplicationNumber = result.getString("LoanAppNumber");
+                return gottenApplicationNumber;
+            }else{
+                return "Not gotten";
+            }
+            
+        } catch (Exception e) {
+            System.out.println("Error :"+e.getMessage());
+            return "Not found ";
+        }
+        
+
+
+    }
 
 }
 
