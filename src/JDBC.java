@@ -12,7 +12,7 @@ public class JDBC {
 
     public void connect() {
         // check connection
-        String url = "jdbc:mysql://localhost:3306/deposit";
+        String url = "jdbc:mysql://localhost:3306/statement_db";
         String username = "root";
         String password = "";
 
