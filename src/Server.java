@@ -175,6 +175,7 @@ public class Server {
 
 
                                             break;
+                                            
                                             case "CheckStatement":
                                             pr.println("Enter the date from (YYYY-MM-DD): ");
                                             String dateFrom = fromclient.nextLine();
@@ -190,10 +191,10 @@ public class Server {
                                             String statement = generateStatement(dateFrom, dateTo); // Generate the statement
                                         
                                             // Send the calculations and statement to the client
-                                            pr.println("Loan Progress: " + loanProgress);
-                                            pr.println("Contribution Progress: " + contributionProgress);
-                                            pr.println("Sacco Performance: " + saccoPerformance);
-                                            pr.println("Statement:\n" + statement);// Send the statement as a UTF string
+                                            pr.println("Loan Progress: " + loanProgress + "%");
+                                            pr.println("Contribution Progress: " + contributionProgress + "%");
+                                            pr.println("Sacco Performance: " + saccoPerformance + "%");
+                                            pr.println("Statement:\n" + statement);// Send the statement 
                                             pr.println(true); // Indicate that the statement was generated successfully
                                             
                                             pr.flush(); // Flush the PrintWriter to ensure data is sent
