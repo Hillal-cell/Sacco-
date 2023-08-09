@@ -1,2 +1,2 @@
 *.class
-!JDBC.java
+JDBC.java
