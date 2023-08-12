@@ -101,22 +101,29 @@ public class Server {
                                             //return; // Exit the loop and terminate the session
                                         case "deposit":
                                             if (command.length == 4) {
-                                                
-                                                String output = deposit(loggedInUsername, command[1], command[2],command[3]);
-                                                double inputamount = Double.parseDouble(command[1]);
-                                                int fg = Integer.parseInt(command[3]);
-                                             
-                                                 if (output.equals("yes")) {
-                                                    updateBalance(fg,inputamount);
-                                                    pr.println("Dear "+ loggedInUsername+" Your deposit of amount : "+inputamount+" has been successfully made and your account balance is now  : "+getFinalBalance(loggedInUsername));
-                                                   
-                                                } else if (output.startsWith("Error: ")|| output.equals("oops!")) {
-                                                    System.out.println("Deposit failed !!");
-                                                    pr.println("Your deposit was NOT successful. Receipt number : "+fg+" is already used");
+                                                int output = deposit(loggedInUsername, command[1], command[2],
+                                                        command[3]);
+
+                                                double inputAmount = Double.parseDouble(command[1]);
+                                                int receiptNumber = Integer.parseInt(command[3]);
+
+                                                if (output == 0) {
+                                                    
+                                                    updateBalance(receiptNumber, inputAmount);
+                                                    markReceiptAsUsed(receiptNumber);
+
+                                                    pr.println("Dear MR/MRS " +loggedInUsername+ " your deposit of amount :" +inputAmount+" has been successfully made. New balance: UGX "+getFinalBalance(loggedInUsername) );
+                                                            
+                                                } else if (output == 1) {
+                                                    pr.println("Deposit has already been made with receipt number: "+receiptNumber);
+                                                            
+                                                } else {
+                                                    pr.println("Deposit failed. Receipt number " +receiptNumber +" does not exist. Please try again after 24 HRS.");
+                                                            
                                                 }
-                                                
                                             } else {
-                                                pr.println("Invalid deposit command format. Please provide all the required parameters.");
+                                                pr.println(
+                                                        "Invalid deposit command format. Please provide all the required parameters.");
                                             }
                                             break;
 
@@ -175,7 +182,7 @@ public class Server {
                                                 // }
                                                 else {
                                                     pr.println("Dear customer your loan request of application number : "+applicationNumber+" has been activated and the suggested amount is : "+LoanApproved);
-                                                    //pr.println("Confirm loan yes/no :");
+                                                    pr.print("Confirm loan:");
 
 
 
@@ -194,6 +201,18 @@ public class Server {
                                         case "CheckStatement":
 
                                             // Handle CheckStatement command        //@@@@@@@@@@
+
+                                            break;
+
+                                        case "yes":
+
+                                            pr.println("Dear MR/Mrs "+loggedInUsername+" your loan has been succesfully approoved. ");
+
+                                            break;
+
+                                        case "no":
+
+                                            pr.println("Dear MR/Mrs "+loggedInUsername+" your loan has been succesfully approoved. ");
 
                                             break;
                                         default:
@@ -247,51 +266,36 @@ public class Server {
                 
     }
 
-    
 
     //deposit method to call
-    private static String deposit(String username, String amount, String dateDeposited, String receiptNumber) {
+    private static int deposit(String username, String amount, String datedeposited, String receiptNumber) {
         try {
-             receiptNum = Integer.parseInt(receiptNumber);
+            int receiptNum = Integer.parseInt(receiptNumber);
 
-           // Check if receipt number exists in the database
-            int receiptExists = checkReceiptExists();
-            if (receiptExists == receiptNum) {
-                System.out.println("receiptNumber expired ");
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
 
-                return "Error: Receipt number already exists. Please use a different receipt number.";
-                
-                
-            }else{
+            String sql = "SELECT used FROM sacco_deposits WHERE Username = ? AND amount = ? AND dateDeposited = ? AND receiptNumber = ?";
+            PreparedStatement selection = connection.prepareStatement(sql);
+            selection.setString(1, username);
+            selection.setDouble(2, Double.parseDouble(amount));
+            selection.setDate(3, Date.valueOf(datedeposited));
+            selection.setInt(4, receiptNum);
 
-                JDBC jdbcInstance = JDBC.getInstance();
-                Connection connection = jdbcInstance.getConnection();
+            ResultSet result = selection.executeQuery();
 
-                String sql = "INSERT INTO deposits (userId, amount, dateDeposited, receiptNumber) VALUES (?, ?, ?, ?)";
-                PreparedStatement insertStatement = connection.prepareStatement(sql);
-                insertStatement.setInt(1, getUserIdByUsername(username));
-                insertStatement.setDouble(2, Double.parseDouble(amount));
-                insertStatement.setDate(3, Date.valueOf(dateDeposited));
-                insertStatement.setInt(4, receiptNum);
-                insertStatement.executeUpdate();
-
-                System.out.println("Deposit successful");
-                return "yes";
+            if (result.next()) {
+                int usedStatus = result.getInt("used");
+                return usedStatus; // This will be 0 (false) or 1 (true)
             }
-            
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return "Error: Failed to deposit. Please check the server logs for more information.";
-        } catch (NumberFormatException e) {
-            e.printStackTrace();
-            return "Error: Invalid receiptNumber format.";
         } catch (Exception e) {
-            e.printStackTrace();
-            return "Error: An unexpected error occurred during deposit.";
+            System.out.println("Exception: " + e.getMessage());
         }
+        return -1;
     }
     
+
     
     //method that validates the login command
     private static boolean isValidCredentials(String username, String password) {
@@ -304,7 +308,7 @@ public class Server {
    
             
 
-            String sql = "SELECT * FROM users WHERE Username = ? AND password = ?";
+            String sql = "SELECT * FROM sacco_members WHERE Username = ? AND password = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, username);
             statement.setString(2, password);
@@ -336,7 +340,7 @@ public class Server {
             Connection connection = jdbcInstance.getConnection();
     
             // Use prepared statement with placeholders to insert the values
-            String insertSql = "INSERT INTO issues (MemberNumber, phoneNumber, DateofRequest) VALUES (?, ?, ?)";
+            String insertSql = "INSERT INTO sacco_issues (MemberNumber, phoneNumber, DateofRequest) VALUES (?, ?, ?)";
             PreparedStatement insertStatement = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS);
             insertStatement.setString(1, MemberNumber);
             insertStatement.setInt(2, phoneNumber);
@@ -362,42 +366,6 @@ public class Server {
         return 0;
     }
   
-    //to track member id for a succesfull deposit in the deposits table
-    private static int getUserIdByUsername(String username) {       
-         
-        
-        int userId = -5;  // this is to show that by default the user is not found (thats why we give it a negative)
-
-        try {
-            
-
-            JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
-           
-            String selectSql = "SELECT ID FROM users WHERE username = ?";
-            PreparedStatement selectStatement = connection.prepareStatement(selectSql);
-            selectStatement.setString(1, username);
-            ResultSet resultSet = selectStatement.executeQuery();
-
-            
-            if (resultSet.next()) {
-                userId = resultSet.getInt("ID");
-                return userId;
-            }else {
-                System.out.println("No ID found for the above username");
-                
-            }
-
-            resultSet.close();
-            selectStatement.close();
-            connection.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return 0;
-        
-    }
-
 
     //to be used to retrive the password 
     private static String validateMemberInformation(String MemberNumber, String phonenumber) {
@@ -411,7 +379,7 @@ public class Server {
             int phoneNumberInt = Integer.parseInt(phonenumber); // Convert the input phonenumber to an integer
 
             // Use a PreparedStatement to create a parameterized query
-            String query = "SELECT * FROM users WHERE MemberNumber = ? OR phoneNumber = ?";
+            String query = "SELECT * FROM sacco_members WHERE MemberNumber = ? OR phoneNumber = ?";
             PreparedStatement statement = connection.prepareStatement(query);
 
             // Set the parameters for the query
@@ -459,8 +427,8 @@ public class Server {
 
  
     //returns oldaccountbalance
-    private static double getOldAccountBalance()  {
-        double balance = NO_BALANCE_EXISTS;
+    private static int getOldAccountBalance(int receiptNumber)  {
+       
        
         try{
 
@@ -468,15 +436,15 @@ public class Server {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
 
-            String query = "SELECT u.accountBalance FROM users u  INNER JOIN deposits d ON u.ID = d.userId  WHERE d.receiptNumber = ?";
+            String query = "SELECT accountBalance FROM sacco_members u  INNER JOIN sacco_deposits d ON u.Username = d.Username  WHERE d.receiptNumber = ?";
 
             PreparedStatement statement = connection.prepareStatement(query);
-             
-            statement.setInt(1, receiptNum);
+            statement.setInt(1, receiptNumber);
 
             ResultSet resultSet = statement.executeQuery();
                 if (resultSet.next()) {
-                    balance = resultSet.getDouble("accountBalance");
+                   int  balance = resultSet.getInt("accountBalance");
+                    return balance;
                    
                 }
             
@@ -484,68 +452,61 @@ public class Server {
             System.out.println("Error: " +e.getMessage());
         }
 
-        return balance;
+        return -1;
     }
 
 
     ////method to update the balance in the members table     
-    private static String updateBalance(int receiptNum,double inamount) {
+    private static void updateBalance(int receiptNumber,double inamount) {
         try {
 
             
-            
-            double oldbalance = getOldAccountBalance();
+            int oldbalance = getOldAccountBalance(receiptNumber);
 
-            if (oldbalance == NO_BALANCE_EXISTS) {
+            if (oldbalance == -1) {
 
-                return "Error: No balance exists for the given receipt number.";
+                return;
                 
             }
 
 
             //update the balance with the deposited amount 
-            double newBalance = oldbalance + inamount;
+            double newBalance = (double)oldbalance + inamount;
 
-            // Save the new balance to the database (you need an UPDATE query)
-
-            // For example:
-            String updateQuery = "UPDATE users s " +
-                    "JOIN deposits d ON s.ID = d.userId " +
-                    "SET s.accountBalance = ? " +
-                    "WHERE d.receiptNumber = ?";
+            String updateQuery = "UPDATE sacco_members s JOIN sacco_deposits d ON s.Username = d.Username SET s.accountBalance = ? WHERE d.receiptNumber = ?";
 
             
                 JDBC jdbcInstance = JDBC.getInstance();
                 Connection connection = jdbcInstance.getConnection();
                 PreparedStatement statement = connection.prepareStatement(updateQuery) ;
                 statement.setDouble(1, newBalance);
-                statement.setInt(2, receiptNum);
+                statement.setInt(2, receiptNumber);
                 statement.executeUpdate();
             
 
             // Log the successful deposit and return true
             System.out.println("balance updated successfuly");
-            return "yay";
+           // return "yay";
         } catch (SQLException e) {
             System.out.println("Error: "+e.getMessage());
             // If there's an error, log the failure and return false
             System.out.println("Balance not updated");
-            return "oops!";
+           // return "oops!";
         }
     }
 
 
 
-    //method to get the final balance after update uisng username
+    //method to get the final balance after update using  the username
     private static int getFinalBalance(String username)  {
-        //double balance =  Double.MIN_VALUE;
+        
         int balance =  0;
 
         try{
 
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
-            String query = "SELECT accountBalance FROM users where username = ?";
+            String query = "SELECT accountBalance FROM sacco_members where username = ?";
             PreparedStatement statement = connection.prepareStatement(query);
              
             statement.setString(1, username);
@@ -578,7 +539,7 @@ public class Server {
 
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
-            String query = "SELECT accountBalance  FROM users u inner join LoanRequest L on u.Username = L.username  where L.LoanAppNumber = ?";
+            String query = "SELECT accountBalance  FROM sacco_members u inner join sacco_loan_requests L on u.Username = L.username  where L.LoanAppNumber = ?";
             PreparedStatement statement = connection.prepareStatement(query);
              
             statement.setString(1, LoanAppNo);
@@ -601,31 +562,6 @@ public class Server {
     }
 
 
-
-    // Helper method to check if the receipt number already exists in the deposits table
-    private static int checkReceiptExists() {
-        int checkedReceipt =-1;
-        try {
-            JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
-            String query = "SELECT receiptNumber FROM deposits WHERE receiptNumber = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setInt(1, receiptNum);
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                checkedReceipt = resultSet.getInt("receiptNumber");
-                return checkedReceipt;  //returns the receiptnumber if it exists
-            }
-                
-            
-            
-        } catch (SQLException e) {
-            e.printStackTrace();
-            
-        }
-        return 0;  //returns a zero if it does not exist
-    }
-
     //method to request for a loan and also return a loanApplication Number
     private static String LoanRequest(String username,int amountrequesting, int pymentperiod){
         String generatedLoanApplicationNumber =null;
@@ -635,7 +571,7 @@ public class Server {
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
-            String querry = "insert into Loanrequest (username, amountrequesting, paymentperiod) values (?,?,?)";
+            String querry = "insert into sacco_loan_requests (username, amountrequesting, paymentperiod) values (?,?,?)";
             PreparedStatement insertStatement = connection.prepareStatement(querry);
             insertStatement.setString(1, username);
             insertStatement.setInt(2, amountrequesting);
@@ -648,7 +584,7 @@ public class Server {
 
             //fetching the generated loan application number
             if (rowsAffected > 0) {
-                String fetchQuery = "SELECT LoanAppNumber FROM LoanRequest WHERE username = ? AND amountrequesting = ? AND paymentperiod = ?";
+                String fetchQuery = "SELECT LoanAppNumber FROM sacco_loan_requests WHERE username = ? AND amountrequesting = ? AND paymentperiod = ?";
                 PreparedStatement fetchStatement = connection.prepareStatement(fetchQuery);
                 fetchStatement.setString(1, username);
                 fetchStatement.setInt(2, amountrequesting);
@@ -686,7 +622,7 @@ public class Server {
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
-            String querry = " select count(LoanStatus) as PendingRequests from LoanRequest  where LoanStatus ='Pending' ";
+            String querry = " select count(LoanStatus) as PendingRequests from sacco_loan_requests  where LoanStatus ='Pending' ";
             PreparedStatement statement = connection.prepareStatement(querry);
             ResultSet result =  statement.executeQuery();
 
@@ -717,7 +653,7 @@ public class Server {
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
-            String querry ="select sum(amount) from deposits";
+            String querry ="select sum(amount) from sacco_deposits";
             PreparedStatement statement = connection.prepareStatement(querry);
             ResultSet result = statement.executeQuery();
 
@@ -734,8 +670,6 @@ public class Server {
         return 0;
 
     }
-
-
 
 
 
@@ -779,20 +713,17 @@ public class Server {
 
 
 
-   
-
-
     //method to check for the status of the in put LOAN APPLICATION NUMBER
     private static String CheckStatusOfLoanAppNumber(String LoanAppNo){
 
         int available_funds = availableFunds();
         int countedPendings = countLoanRequests();
-        //String checkedStatus =CheckStatusOfLoanAppNumber(LoanAppNo);
+        
 
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
-            String querry = "select LoanStatus from LoanRequest where LoanAppNumber =?";
+            String querry = "select LoanStatus from sacco_loan_requests where LoanAppNumber =?";
             PreparedStatement statement =connection.prepareStatement(querry);
             statement.setString(1,LoanAppNo);
             ResultSet result = statement.executeQuery();
@@ -846,10 +777,6 @@ public class Server {
     }
 
 
-   
-
-   
-
 
     //method to change the loan status after calculating the loan to be given 
     private static void changeStatusOfLoan() {
@@ -857,7 +784,7 @@ public class Server {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
 
-            String query = "UPDATE LoanRequest SET LoanStatus = 'Processing' WHERE LoanStatus = 'Pending'";
+            String query = "UPDATE sacco_loan_requests SET LoanStatus = 'Processing' WHERE LoanStatus = 'Pending'";
             PreparedStatement statement = connection.prepareStatement(query);
             statement.executeUpdate();
 
@@ -882,7 +809,7 @@ public class Server {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
 
-            String querry = "select LoanAppNumber from LoanRequest where LoanAppNumber =?";
+            String querry = "select LoanAppNumber from sacco_loan_requests where LoanAppNumber =?";
             PreparedStatement statement =connection.prepareStatement(querry);
             statement.setString(1,LoanAppNo);
             ResultSet result = statement.executeQuery();
@@ -904,7 +831,20 @@ public class Server {
     }
 
 
+    //METHOD TO MARK THE RECEIPT NUMBER AS USED FOR A SINGLE DEPOSIT
+    private static void markReceiptAsUsed(int receiptNumber) {
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
 
+            String updateQuery = "UPDATE sacco_deposits SET used = 1 WHERE receiptNumber = ?";
+            PreparedStatement statement = connection.prepareStatement(updateQuery);
+            statement.setInt(1, receiptNumber);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error marking receipt as used: " + e.getMessage());
+        }
+    }
 
 
 

@@ -39,16 +39,12 @@ public class Client {
                             menuBuilder.append(menuOption).append("\n");
                         }
                         System.out.println(menuBuilder.toString().trim()); // Display the complete menu
-                    }else if(serverResponse.equals("Please supply your Registered PhoneNumber And MemberNumber")){
-                            System.out.println("Please Enter your  MemberNumer :");
-                             input = clientinput.nextLine(); 
-                             pr.println(input);
-                            System.out.println("Please Enter your phoneNumer :");
-                            int d =clientinput.nextInt(); 
-                            pr.println(d);
-                             System.out.println(fromServer.nextLine());
-
-                    }
+                    }else if (serverResponse.equals("Confirm loan:")) {
+                        System.out.print("Please type \"yes\" to confirm the suggested loan or \"no\" to reject");
+                        input = clientinput.nextLine();
+                        pr.println(input);
+                        
+                    } 
                 }
 
 
