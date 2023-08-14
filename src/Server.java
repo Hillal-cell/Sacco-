@@ -59,15 +59,19 @@ public class Server {
             
             
              
-            message ="Welcome to Uprise Sacco program please login";
+            message = "+=============================+" +
+            "|Welcome to Uprise Sacco->please login using login <username> <password>" +
+            "+=============================+" ;
             pr.println(message);
 
             
+            
             //secure menu to send to the client 
-            SecureMenu = "1. Deposit amount datedeposited receiptNumber\n" +
-             "2. CheckStatement dateFrom dateTo\n" +
-             "3. requestLoan amount paymentPeriodinMonths\n" +
-             "4. LoanRequestStatus LoanApplicationNumber";
+            SecureMenu = "|1. Deposit amount datedeposited receiptNumber                                                                                          \n" +
+             "|2. CheckStatement dateFrom dateTo                                                                                                      \n" +
+             "|3. requestLoan amount paymentPeriodinMonths                                                                                            \n" +
+             "|4. LoanRequestStatus LoanApplicationNumber                                                                                             \n"+
+             "+--------------------------------------------------------------------------------------------------------------------------------------+";
 
              
             while ((userInput = fromclient.nextLine()) != null) {
@@ -79,7 +83,7 @@ public class Server {
                             if (isValidCredentials(command[1], command[2])) {
                                 loggedInUsername = command[1];
                                 loggedInPassword = command[2];
-                                pr.println("You have successfully logged in. Here is the secured menu:");
+                                pr.println("=============================================You have successfully logged in. Here is the secured menu:=================================");
 
                                 String[] menuOptions = SecureMenu.split("\n");
                                 for (String option : menuOptions) {
@@ -177,28 +181,36 @@ public class Server {
                                             break;
                                             
                                             case "CheckStatement":
-                                            pr.println("Enter the date from (YYYY-MM-DD): ");
-                                            String dateFrom = fromclient.nextLine();
-                                            pr.println("Enter the date to (YYYY-MM-DD): ");
-                                            String dateTo = fromclient.nextLine();
+                                            
                                         
+                                            pr.println("=============||Enter the date from (YYYY-MM-DD):||============= ");
+                                            String dateFrom = fromclient.nextLine();
+                                            
+                                            pr.println("=============||Enter the date to (YYYY-MM-DD):||=============== ");
+                                            String dateTo = fromclient.nextLine();
+                                            
+
                                             // The user entered "CheckStatement," proceed with generating the statement
                                             int memberId = getUserIdByUsername(loggedInUsername);
                                             double loanProgress = calculateLoanProgress(memberId);
                                             double contributionProgress = calculateContributionProgress(memberId);
                                             double saccoPerformance = calculateSaccoPerformance();
-                                        
+                                             
                                             String statement = generateStatement(dateFrom, dateTo); // Generate the statement
-                                        
-                                            // Send the calculations and statement to the client
-                                            pr.println("Loan Progress: " + loanProgress + "%");
-                                            pr.println("Contribution Progress: " + contributionProgress + "%");
-                                            pr.println("Sacco Performance: " + saccoPerformance + "%");
-                                            pr.println("Statement:\n" + statement);// Send the statement 
-                                            pr.println(true); // Indicate that the statement was generated successfully
+                                           
+                                            // Build the output message directly without using StringBuilder
+                                            String calc =
+                                                "||Loan Progress: " + loanProgress + "%" + "\n" +
+                                                "||Contribution Progress: " + contributionProgress + "%" + "\n" +
+                                                "||Sacco Performance: " + saccoPerformance + "%" + "\n" +
+                                                "||Statement:" + statement + "\n";
                                             
-                                            pr.flush(); // Flush the PrintWriter to ensure data is sent
+                                            // Send the entire message without adding a newline
+                                            pr.print(calc);
+                                            pr.flush(); // Flushing the PrintWriter to ensure data is sent
+                                            
                                             break;
+                                            
                                         
                                         default:
                                             pr.println("Please follow the menu to access the services.");
@@ -934,7 +946,8 @@ public class Server {
   // Generate the statement for a given date range
     public static String generateStatement(String dateFrom, String dateTo) {
         StringBuilder statement = new StringBuilder();
-        // statement.append("Statement from ").append(dateFrom).append(" to ").append(dateTo).append(":\n\n");
+        statement.append("Statement from ").append(dateFrom).append(" to ").append(dateTo).append(":\n");
+        statement.append("               +---------------------------------------------------Statement-----------------------------------------+ ").append("\n");
 
         try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "")) {
             // Fetch loan data from the database
@@ -952,11 +965,14 @@ public class Server {
                     double loanAmount = loanResultSet.getDouble("loan_amount");
                     String loanStatus = loanResultSet.getString("repayment_status");
 
-                    statement.append(", loanID").append(loanID).append("Loan - Date: ").append(loanDate)
-                            .append(", Amount: $").append(loanAmount).append(", Status: ").append(loanStatus).append("\t");
+                    statement.append("\n").append("               |").append("  loanID: ").append(loanID).append(", Date: ").append(loanDate)
+                            .append(", Amount: UGX ").append(loanAmount).append(", Status: ").append(loanStatus).append("                          \n");
                 }
-                statement.append("\t");
-            }
+                statement.append("\n");
+                 statement.append("               +-----------------------------------------------------------------------------------------------------+");
+                statement.append("\n");
+                statement.append("\n");
+                }
 
             // Fetch contribution data from the database
             String contributionQuery = "SELECT id, transaction_date, amount, transaction_type FROM transactions WHERE transaction_date BETWEEN ? AND ?";
@@ -965,7 +981,7 @@ public class Server {
                 contributionStatement.setString(2, dateTo);
                 ResultSet contributionResultSet = contributionStatement.executeQuery();
 
-                statement.append("Contribution Status:\n");
+                statement.append("               +---------------------------------------------------Statement-----------------------------------------+ ").append("\n");
                 while (contributionResultSet.next()) {
 
                     int id = contributionResultSet.getInt("id");
@@ -973,13 +989,23 @@ public class Server {
                     double contributionAmount = contributionResultSet.getDouble("amount");
                     String Status = contributionResultSet.getString("transaction_type");
 
-                    statement.append(" transactionId ").append(id).append(" Date: ").append(contributionDate)
-                            .append(", Amount: ugx ").append(contributionAmount).append(", Status: ").append(Status).append("\n");
+                    // statement.append(" transactionId ").append(id).append(" Date: ").append(contributionDate)
+                    //         .append(", Amount: ugx ").append(contributionAmount).append(", Status: ").append(Status).append("\n");
+
+                    statement.append("               | ")
+                    .append(String.format(" transactionId %d Date: %s, Amount: ugx %.2f, Status: %s                    %n",
+                               id, contributionDate, contributionAmount, Status)).append("\n");
+                               
                 }
+            statement.append("               +-----------------------------------------------------------------------------------------------------+");
             }
 
             // Add a print statement to verify the generated statement
-            System.out.println("Generated Statement:\n" + statement.toString());
+            // System.out.println("\n " );
+            System.out.print("Generated Statement:" + statement.toString());
+            
+            
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
