@@ -563,55 +563,52 @@ public class Server {
 
 
     //method to request for a loan and also return a loanApplication Number
-    private static String LoanRequest(String username,int amountrequesting, int pymentperiod){
-        String generatedLoanApplicationNumber =null;
-        
-        
-        
+    private static String LoanRequest(String username, int amountrequesting, int paymentperiod) {
+        String generatedLoanApplicationNumber = null;
+
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
-            String querry = "insert into sacco_loan_requests (username, amountrequesting, paymentperiod) values (?,?,?)";
+
+            String newLoanAppNumber = generateLoanAppNumber(connection);
+
+            String querry = "INSERT INTO sacco_loan_requests (LoanAppNumber, username, amountrequesting, paymentperiod, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
             PreparedStatement insertStatement = connection.prepareStatement(querry);
             insertStatement.setString(1, username);
             insertStatement.setInt(2, amountrequesting);
-            insertStatement.setInt(3, pymentperiod);
-            
-
-            
+            insertStatement.setInt(3, paymentperiod);
+            insertStatement.setString(4, newLoanAppNumber);
 
             int rowsAffected = insertStatement.executeUpdate();
 
-            //fetching the generated loan application number
             if (rowsAffected > 0) {
-                String fetchQuery = "SELECT LoanAppNumber FROM sacco_loan_requests WHERE username = ? AND amountrequesting = ? AND paymentperiod = ?";
-                PreparedStatement fetchStatement = connection.prepareStatement(fetchQuery);
-                fetchStatement.setString(1, username);
-                fetchStatement.setInt(2, amountrequesting);
-                fetchStatement.setInt(3, pymentperiod);
-
-                ResultSet resultSet = fetchStatement.executeQuery();
-                if (resultSet.next()) {
-                    generatedLoanApplicationNumber = resultSet.getString("LoanAppNumber");
-                }else{
-                    return "not found";
-                }
-                fetchStatement.close();
+                generatedLoanApplicationNumber = newLoanAppNumber;
             }
 
-            //System.out.println(generatedLoanApplicationNumber);
-           
             return generatedLoanApplicationNumber;
-           
-            
-        } catch (Exception e) {
-            System.out.println("Denied :"+e.getMessage());
 
-            return "Error :";
+        } catch (Exception e) {
+            System.out.println("Denied: " + e.getMessage());
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    //method to  generate and select the application number 
+    private static String generateLoanAppNumber(Connection connection) throws SQLException {
+        String fetchQuery = "SELECT LoanAppNumber FROM sacco_loan_requests ORDER BY LoanAppNumber DESC LIMIT 1";
+        PreparedStatement fetchStatement = connection.prepareStatement(fetchQuery);
+        ResultSet resultSet = fetchStatement.executeQuery();
+
+        int latestNumber = 0;
+        if (resultSet.next()) {
+            String latestLoanAppNumber = resultSet.getString("LoanAppNumber");
+            latestNumber = Integer.parseInt(latestLoanAppNumber.substring(3));
         }
 
-        
+        int newNumber = latestNumber + 1;
+        String newLoanAppNumber = "LAN" + String.format("%03d", newNumber);
 
+        return newLoanAppNumber;
     }
 
 
