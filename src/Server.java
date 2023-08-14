@@ -13,8 +13,7 @@ import java.util.*;
 
 public class Server {
 
-   private static int receiptNum =-90;  //receipt Number to be checked 
-   private static final int NO_BALANCE_EXISTS = -1; // var to be used once the receipt number already exists in the database
+   
 
 
 
@@ -31,12 +30,13 @@ public class Server {
         String MemberNumber = null;
         String loggedInUsername = null;
         String loggedInPassword = null;
-        Scanner sc = null;
+       // Scanner sc = null;
        // Scanner hj=null;
         
         
 
-        //db connect
+        //db connecticon this is to ensure that at the start of the application theres an instance of the sigleton  that has already been created 
+        //and this is the one to be used throughout the application's life cycle
         try {
             JDBC.getInstance().connect();
             //
