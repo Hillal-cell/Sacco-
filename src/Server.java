@@ -572,7 +572,7 @@ public class Server {
 
             String newLoanAppNumber = generateLoanAppNumber(connection);
 
-            String querry = "INSERT INTO sacco_loan_requests (LoanAppNumber, username, amountrequesting, paymentperiod, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+            String querry = "INSERT INTO sacco_loan_requests (username, amountrequesting, paymentperiod, LoanAppNumber, created_at, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
             PreparedStatement insertStatement = connection.prepareStatement(querry);
             insertStatement.setString(1, username);
             insertStatement.setInt(2, amountrequesting);
