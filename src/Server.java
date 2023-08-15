@@ -167,12 +167,12 @@ public class Server {
 
                                                 
 
-                                                }else if ((gotten.startsWith("LAN")) && status.equals("Pending")) {
+                                                }else if ( status.equals("Pending")) {
                                                     pr.println("Dear our customer your loan for the loan application number : "+applicationNumber +" is still pending");
                                                     System.out.println("Checked status of a pending loan ");
 
 
-                                                } else  if  ((gotten.startsWith("LAN")) && status.equals("Processing")) {
+                                                } else  if  ( status.equals("Processing")) {
 
                                                     pr.println("Dear customer your loan request of application number : "+applicationNumber+" is still under processing");
                                                     System.out.println("Checked status of  loan under processing");
@@ -230,9 +230,8 @@ public class Server {
                         case "forgotPassword":
                             // Handle forgotPassword command
                             if (validateMemberInformation(command[1], command[2]).equals("One match")) {
-                                pr.println(
-                                        "Please return after a day while your issue has been resolved. Your reference number is: "
-                                                + ReferenceNumber(MemberNumber,PhoneNumber));
+
+                                pr.println("Please return after a day while your issue has been resolved. Your reference number is: "+ ReferenceNumber(command[1],Integer.parseInt(command[2])));
                             } else if (validateMemberInformation(command[1], command[2]) == null) {
                                 break;
                             } else {
@@ -328,43 +327,50 @@ public class Server {
     }
   
     //method to generate the reference number
-    private static int ReferenceNumber(String MemberNumber, int phoneNumber) {
-       
+    private static String ReferenceNumber(String MemberNumber, int phoneNumber) {
         String DateofRequest = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss"));
-        int referenceNumber = 0; // Initialize the referenceNumber variable to store the generated value.
-    
-        try {
-            
+        String referenceNumber = null;
 
+        try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
-    
+
             // Use prepared statement with placeholders to insert the values
-            String insertSql = "INSERT INTO sacco_issues (MemberNumber, phoneNumber, DateofRequest) VALUES (?, ?, ?)";
+            String insertSql = "INSERT INTO sacco_issues (MemberNumber, phoneNumber, DateofRequest, created_at, updated_at) VALUES (?, ?, ?, now(), now())";
             PreparedStatement insertStatement = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS);
             insertStatement.setString(1, MemberNumber);
             insertStatement.setInt(2, phoneNumber);
             insertStatement.setString(3, DateofRequest);
-            insertStatement.executeUpdate();
-    
-            // Retrieve the generated ReferenceNumber
-            ResultSet generatedKeys = insertStatement.getGeneratedKeys();
-            if (generatedKeys.next()) {
-                referenceNumber = generatedKeys.getInt(1); // Since the ReferenceNumber is an INT column.
-                return referenceNumber;
+
+            // Execute the insert statement and retrieve the generated keys
+            int affectedRows = insertStatement.executeUpdate();
+            if (affectedRows > 0) {
+                ResultSet generatedKeys = insertStatement.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    int generatedId = generatedKeys.getInt(1);
+
+                    // Now, execute a separate query to get the reference number using the generated
+                    // ID
+                    String referenceSql = "SELECT ReferenceNumber FROM sacco_issues WHERE id = ?";
+                    PreparedStatement referenceStatement = connection.prepareStatement(referenceSql);
+                    referenceStatement.setInt(1, generatedId);
+
+                    ResultSet referenceResult = referenceStatement.executeQuery();
+                    if (referenceResult.next()) {
+                        referenceNumber = referenceResult.getString("ReferenceNumber");
+                    }
+                }
             }
-    
-            // Close resources
-            generatedKeys.close();
-            insertStatement.close();
-            connection.close();
-    
+
+            // Close resources and return referenceNumber
+
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }
-    
-        return 0;
+
+        return referenceNumber != null ? referenceNumber : "Not found";
     }
+
   
 
     //to be used to retrive the password 
@@ -411,7 +417,7 @@ public class Server {
                 return user_password; // Both match
             } else if (memberFound || phoneNumberFound) {
                 //to insert the phone number and the MemberNumber into the issues table for the admin to find out the issue 
-                ReferenceNumber(MemberNumber, phoneNumberInt);
+               // ReferenceNumber(MemberNumber, phoneNumberInt);
                 return "One match"; // One of them matches
             } else {
                 return "No record found. Return after a day"; // None match
@@ -711,46 +717,53 @@ public class Server {
 
 
     //method to check for the status of the in put LOAN APPLICATION NUMBER
-    private static String CheckStatusOfLoanAppNumber(String LoanAppNo){
-
+    private static String CheckStatusOfLoanAppNumber(String LoanAppNo) {
         int available_funds = availableFunds();
         int countedPendings = countLoanRequests();
-        
 
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
             String querry = "select LoanStatus from sacco_loan_requests where LoanAppNumber =?";
-            PreparedStatement statement =connection.prepareStatement(querry);
-            statement.setString(1,LoanAppNo);
+            PreparedStatement statement = connection.prepareStatement(querry);
+            statement.setString(1, LoanAppNo);
             ResultSet result = statement.executeQuery();
 
             if (result.next()) {
-               String LoanStatus = result.getString("LoanStatus");
+                String LoanStatus = result.getString("LoanStatus");
 
-
-               if (LoanStatus.equals("Pending") ) {
-                return "Pending";
-               }else if (((countedPendings >= 10) && (available_funds > 2000000)) || (LoanStatus.equals("Processing"))) {
-                changeStatusOfLoan();
-                if ((LoanStatus.equals("Processing"))) {
-
+                if (LoanStatus.equals("Pending")) {
+                    if (countedPendings >= 10 && available_funds > 2000000) {
+                        changeLoanStatus(LoanAppNo, "Processing"); // Change status to Processing
+                        return "Processing";
+                    } else {
+                        return "Pending";
+                    }
+                } else if (LoanStatus.equals("Processing")) {
                     return "Processing";
-                    
-                }else {
-                    return "Active";
+                } else {
+                    return "Activated"; // Status is neither "Pending" nor "Processing"
                 }
-                
-               }
-            
             }
-
-
         } catch (Exception e) {
             System.out.println(e.getMessage());
-           
         }
         return "No status";
+    }
+
+    //method to now change the status after all conditions being true
+    private static void changeLoanStatus(String LoanAppNo, String newStatus) {
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+            String query = "update sacco_loan_requests set LoanStatus = ? where LoanAppNumber = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, newStatus);
+            statement.setString(2, LoanAppNo);
+            statement.executeUpdate();
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
     }
 
 
@@ -776,25 +789,25 @@ public class Server {
 
 
     //method to change the loan status after calculating the loan to be given 
-    private static void changeStatusOfLoan() {
-        try {
-            JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
+    // private static void changeStatusOfLoan() {
+    //     try {
+    //         JDBC jdbcInstance = JDBC.getInstance();
+    //         Connection connection = jdbcInstance.getConnection();
 
-            String query = "UPDATE sacco_loan_requests SET LoanStatus = 'Processing' WHERE LoanStatus = 'Pending'";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.executeUpdate();
+    //         String query = "UPDATE sacco_loan_requests SET LoanStatus = 'Processing' WHERE LoanStatus = 'Pending'";
+    //         PreparedStatement statement = connection.prepareStatement(query);
+    //         statement.executeUpdate();
 
-            //int rowsAffected = statement.executeUpdate();
+    //         //int rowsAffected = statement.executeUpdate();
 
-            // if (rowsAffected > 0) {
-            //     return "Processing";
-            // }
-        } catch (Exception e) {
-            System.out.println("Error! " + e.getMessage());
-        }
-        //return "status not updated";
-    }
+    //         // if (rowsAffected > 0) {
+    //         //     return "Processing";
+    //         // }
+    //     } catch (Exception e) {
+    //         System.out.println("Error! " + e.getMessage());
+    //     }
+    //     //return "status not updated";
+    // }
 
 
     //method to check whether the input loanApplication number is valid
