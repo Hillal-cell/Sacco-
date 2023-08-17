@@ -40,9 +40,11 @@ public class Client {
                         }
                         System.out.println(menuBuilder.toString().trim()); // Display the complete menu
                     }else if (serverResponse.equals("Confirm loan:")) {
-                        System.out.print("Please type \"yes\" to confirm the suggested loan or \"no\" to reject");
-                        input = clientinput.nextLine();
-                        pr.println(input);
+
+                        //System.out.println("Please type \"yes\" to confirm the suggested loan or \"no\" to reject");
+                        String respond = clientinput.nextLine();
+
+                        pr.println(respond); // Send the input to the server
                         
                     } 
                 }

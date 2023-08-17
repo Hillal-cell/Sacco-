@@ -6,6 +6,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import javax.sound.midi.Soundbank;
+
 
 
 
@@ -30,8 +32,7 @@ public class Server {
         String MemberNumber = null;
         String loggedInUsername = null;
         String loggedInPassword = null;
-       // Scanner sc = null;
-       // Scanner hj=null;
+        //String confirmationResponse = null;
         
         
 
@@ -52,7 +53,7 @@ public class Server {
             serverSoc = new ServerSocket(5656);
             System.out.println("Server running ...");
             ss = serverSoc.accept();
-            System.out.println("         New Client connection        ");
+            System.out.println("*********** New Client connection ***********");
             pr = new PrintWriter(ss.getOutputStream(),true);
             
             fromclient = new Scanner(ss.getInputStream());
@@ -99,7 +100,7 @@ public class Server {
                                             //pr.println("You have been logged out. Thank you for using our service.");
                                             System.out.println("user logged out of the system!");
                                             //return; // Exit the loop and terminate the session
-                                        case "deposit":
+                                        case "Deposit":
                                             if (command.length == 4) {
                                                 int output = deposit(loggedInUsername, command[1], command[2],
                                                         command[3]);
@@ -168,26 +169,64 @@ public class Server {
                                                 
 
                                                 }else if ( status.equals("Pending")) {
-                                                    pr.println("Dear our customer your loan for the loan application number : "+applicationNumber +" is still pending");
+                                                    pr.println("Dear Mr/Mrs "+loggedInUsername+ " your loan for the loan application number : "+applicationNumber +" is still pending");
                                                     System.out.println("Checked status of a pending loan ");
 
 
                                                 } else  if  ( status.equals("Processing")) {
 
-                                                    pr.println("Dear customer your loan request of application number : "+applicationNumber+" is still under processing");
+                                                    pr.println("Dear Mr/Mrs "+loggedInUsername+ " customer your loan request of application number : "+applicationNumber+" is still under processing");
                                                     System.out.println("Checked status of  loan under processing");
                                                         
                                                 }
                                                 
                                                 // }
                                                 else {
-                                                    pr.println("Dear customer your loan request of application number : "+applicationNumber+" has been activated and the suggested amount is : "+LoanApproved);
+                                                    pr.println("Dear Mr/Mrs "+loggedInUsername+ " your loan request of application number : "+applicationNumber+" has been activated and the suggested amount is : "+LoanApproved+" confirm yes/no.");
                                                     pr.print("Confirm loan:");
 
-
-
+        
                                                     System.out.println("Checked status of active loan ");
+
+
+                                                   // if (fromclient.hasNextLine()) {
+                                                        String respond = fromclient.nextLine();
+
+
+                                                        if (respond.equalsIgnoreCase("yes")) {
+
+                                                            
+                                                            String LoanID =null;
+                                                            String MemberID=null;
+                                                            //String Username=null;
+                                                            int Amount_to_pay=0;
+                                                            int Payment_Period=0;
+                                                            int Cleared_Amount=0;
+                                                            int Loan_Balance =0;
+                                                            
+                                                        
+                                                            pr.println("Dear Mr/Mrs "+loggedInUsername+ "your loan of amount :"+LoanApproved+" has been succesfully granted .");
+                                                            // method to accept loan push the loan to sacco_active_loans
+                                                            AcceptLoan(LoanID, MemberID, loggedInUsername, Amount_to_pay, Payment_Period, Cleared_Amount, Loan_Balance);
+                                                            //also delete the loan request
+                                                            LoanDenied(loggedInUsername);
+
+
+                                                        }else if(respond.equalsIgnoreCase("no")){
+
+                                                            pr.println("Dear Mr/Mrs "+loggedInUsername+ "you you have revoked the loan of amount: "+LoanApproved);
+                                                            // method to deny the loan and delete the loan from the loan_requests table
+                                                            LoanDenied(loggedInUsername);
+
+                                                        }else{
+                                                            pr.println("Please select either yes/no.");
+                                                    
+                                                        }
+
+                                                   // }
                                                 }
+
+                                                
                                                     
                                             
                                                       
@@ -204,17 +243,7 @@ public class Server {
 
                                             break;
 
-                                        case "yes":
-
-                                            pr.println("Dear MR/Mrs "+loggedInUsername+" your loan has been succesfully approoved. ");
-
-                                            break;
-
-                                        case "no":
-
-                                            pr.println("Dear MR/Mrs "+loggedInUsername+" your loan has been succesfully approoved. ");
-
-                                            break;
+                                        
                                         default:
                                             pr.println("Please follow the menu to acces the services.");
                                            
@@ -787,29 +816,6 @@ public class Server {
     }
 
 
-
-    //method to change the loan status after calculating the loan to be given 
-    // private static void changeStatusOfLoan() {
-    //     try {
-    //         JDBC jdbcInstance = JDBC.getInstance();
-    //         Connection connection = jdbcInstance.getConnection();
-
-    //         String query = "UPDATE sacco_loan_requests SET LoanStatus = 'Processing' WHERE LoanStatus = 'Pending'";
-    //         PreparedStatement statement = connection.prepareStatement(query);
-    //         statement.executeUpdate();
-
-    //         //int rowsAffected = statement.executeUpdate();
-
-    //         // if (rowsAffected > 0) {
-    //         //     return "Processing";
-    //         // }
-    //     } catch (Exception e) {
-    //         System.out.println("Error! " + e.getMessage());
-    //     }
-    //     //return "status not updated";
-    // }
-
-
     //method to check whether the input loanApplication number is valid
     private static String validateLaonApplicationNumberofCheckStatus(String LoanAppNo){
 
@@ -858,6 +864,180 @@ public class Server {
 
 
 
+    //method to send the loan if accepted to the active loans table
+    private static void AcceptLoan(String LoanID,String MemberID,String Username,int Amount_to_pay,int Payment_Period,int Cleared_Amount,int Loan_Balance){
+
+        LoanID = SelectLoanAppNumber();
+        MemberID =SelectMemberNumber();
+        Amount_to_pay = (int)(LoanFromSystem(LoanID));
+        Payment_Period = Integer.parseInt(SelectPaymentPeriod());
+        Cleared_Amount =ClearedAmount(Username);
+        Loan_Balance = Amount_to_pay-Cleared_Amount;
+
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+
+            String querry ="Insert into sacco_active_loans  (LoanID, MemberID, Username, Amount_to_pay, Payment_Period, Cleared_Amount, Loan_Balance, created_at, updated_at) values (?,?,?,?,?,?,?,now(),now())";
+            PreparedStatement statement = connection.prepareStatement(querry);
+            statement.setString(1, LoanID);
+            statement.setString(2, MemberID);
+            statement.setString(3, Username);
+            statement.setInt(4, Amount_to_pay);
+            statement.setInt(5, Payment_Period);
+            statement.setInt(6, Cleared_Amount);
+            statement.setInt(7, Loan_Balance);
+            statement.executeUpdate();
+            
+            
+
+            
+        } catch (Exception e) {
+            System.out.println("Not sent :"+e.getMessage());
+        }
+
+    }
+
+    private static String SelectLoanAppNumber(){
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+
+            String sql = "select * from sacco_loan_requests ";
+            PreparedStatement statement = connection.prepareStatement(sql);
+
+            ResultSet result =statement.executeQuery();
+
+            if (result.next()) {
+                String LoanAppNumber = result.getString("LoanAppNumber");
+                return LoanAppNumber;
+            }
+
+
+            
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return "Not found";
+    }
+
+    private static String SelectMemberNumber(){
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+
+            String sql = "select * from sacco_members ";
+            PreparedStatement statement = connection.prepareStatement(sql);
+
+            ResultSet result =statement.executeQuery();
+
+            if (result.next()) {
+                String MemberNumber = result.getString("MemberNumber");
+                return MemberNumber;
+            }
+
+
+            
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return "Not found";
+    }
+
+    private static int AmountToClearFromLoan(){
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+
+            String sql = "select accountBalance from sacco_members ";
+            PreparedStatement statement = connection.prepareStatement(sql);
+
+            ResultSet result =statement.executeQuery();
+
+            if (result.next()) {
+                int subtraction = result.getInt("accountBalance");
+                return subtraction;
+            }
+
+
+            
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return -1;
+    }
+
+    private static String SelectPaymentPeriod(){
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+
+            String sql = "select * from sacco_loan_requests ";
+            PreparedStatement statement = connection.prepareStatement(sql);
+
+            ResultSet result =statement.executeQuery();
+
+            if (result.next()) {
+                String paymentperiod = result.getString("paymentperiod");
+                return paymentperiod;
+            }
+
+
+            
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return "Not found";
+    }
+
+
+    //method to give us the cleared amount 
+    private static int ClearedAmount(String Username){
+
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+
+            String query = "select count(receiptNumber) as NumberOfDeposits from sacco_deposits  where Username = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setString(1, Username);
+
+            ResultSet result = statement.executeQuery();
+
+            if (result.next()) {
+                int  NumberofDeposits = result.getInt(1);
+
+                if (NumberofDeposits < 3) {
+                    return 0;
+                }else{
+                    return  AmountToClearFromLoan() - (int)(0.5*LoanFromSystem(Username));
+                }
+            }
+
+            
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return -1;
+    }
+
+
+    //method to delete loan from sacco_loan_requests table if loan is denied 
+    private static void LoanDenied(String username){
+        try {
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
+
+            String querry = "delete from sacco_loan_requests where username =?";
+            PreparedStatement statement = connection.prepareStatement(querry);
+            statement.setString(1, username);
+            statement.executeUpdate();
+
+            
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
 
 
 
