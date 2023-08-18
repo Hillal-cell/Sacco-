@@ -343,7 +343,7 @@ public class Server {
    
             
 
-            String sql = "SELECT * FROM members WHERE Username = ? AND password = ?";//sacco_members changed login info
+            String sql = "SELECT * FROM sacco_members WHERE Username = ? AND password = ?";//sacco_members changed login info
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, username);
             statement.setString(2, password);
@@ -881,7 +881,10 @@ public class Server {
     // Calculate the loan progress for a member
     public static double calculateLoanProgress() {
         try {
-            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "");
+            //Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "");
+
+             JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
 
             double loanProgress = 0.0;
             int monthsCleared = 0;
@@ -913,7 +916,9 @@ public class Server {
     // Calculate the contribution progress for a member
     public static double calculateContributionProgress() {
         try {
-            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "");
+            //Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "");
+             JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
 
             double contributionProgress = 0.0;
             int monthsCleared = 0;
@@ -945,7 +950,9 @@ public class Server {
     // Calculate the Sacco performance
     public static double calculateSaccoPerformance() {
         try {
-            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "");
+            //Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "");
+            JDBC jdbcInstance = JDBC.getInstance();
+            Connection connection = jdbcInstance.getConnection();
 
             double saccoPerformance = 0.0;
             int totalMembers = 0;
