@@ -1,10 +1,15 @@
-import java.io.*;
-import java.net.*;
-import java.sql.*;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.sql.Connection;
 import java.sql.Date;
-import java.time.format.DateTimeFormatter;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.time.format.DateTimeFormatter;
+import java.util.Scanner;
 
 
 
@@ -15,11 +20,12 @@ import java.util.*;
 
 public class Server {
 
-   
+   private static final double InterestRate = 0.06;
 
 
 
     public static void main(String[] args) {
+
         ServerSocket serverSoc =null;
         Socket ss = null;
         Scanner fromclient = null;
@@ -29,10 +35,13 @@ public class Server {
         String[] command  = null;
         String SecureMenu = null;
         int PhoneNumber =0;
-        String MemberNumber = null;
+        //String MemberNumber = null;
         String loggedInUsername = null;
         String loggedInPassword = null;
         //String confirmationResponse = null;
+        int months =0;
+        
+        
         
         
 
@@ -97,9 +106,9 @@ public class Server {
                                     
                                     switch (command[0]) {
                                         case "logout":
-                                            //pr.println("You have been logged out. Thank you for using our service.");
+                                            
                                             System.out.println("user logged out of the system!");
-                                            //return; // Exit the loop and terminate the session
+                                            
                                         case "Deposit":
                                             if (command.length == 4) {
                                                 int output = deposit(loggedInUsername, command[1], command[2],
@@ -132,7 +141,7 @@ public class Server {
                                             // Handle requestLoan command
                                             if (command.length == 3) {
                                                 int amountrest =Integer.parseInt(command[1]);
-                                                int months = Integer.parseInt(command[2]);
+                                                 months = Integer.parseInt(command[2]);
                                                
                                                 String LoanResult = LoanRequest(loggedInUsername,amountrest, months);
 
@@ -159,7 +168,10 @@ public class Server {
                                                String applicationNumber = (command[1]);
                                                String status = CheckStatusOfLoanAppNumber(applicationNumber);
                                                String gotten = validateLaonApplicationNumberofCheckStatus(applicationNumber);
-                                               double LoanApproved = LoanFromSystem(applicationNumber);
+                                               int LoanApproved =(int) LoanFromSystem(applicationNumber);
+                                               double convertion = LoanApproved;
+                                               double CalculatedInterest = + InterestMethod(convertion, applicationNumber, timeforinterest(loggedInUsername), loggedInUsername);
+                                               double finalApproovedLoan = (LoanApproved + CalculatedInterest);
 
                                                
                                                 if ((gotten.equals("Not gotten"))||(gotten.equals("Not found")) && (status.equals("No status"))) {
@@ -180,41 +192,45 @@ public class Server {
                                                         
                                                 }
                                                 
-                                                // }
+                                                
                                                 else {
-                                                    pr.println("Dear Mr/Mrs "+loggedInUsername+ " your loan request of application number : "+applicationNumber+" has been activated and the suggested amount is : "+LoanApproved+" confirm yes/no.");
+                                                    pr.println("Dear Mr/Mrs "+loggedInUsername+ " your loan request of application number : "+applicationNumber+ " has been activated and the suggested amount is : "+finalApproovedLoan+" confirm yes/no.");
                                                     pr.print("Confirm loan:");
 
         
                                                     System.out.println("Checked status of active loan ");
 
 
-                                                   // if (fromclient.hasNextLine()) {
+                                                   
                                                         String respond = fromclient.nextLine();
 
 
                                                         if (respond.equalsIgnoreCase("yes")) {
 
                                                             
-                                                            String LoanID =null;
-                                                            String MemberID=null;
-                                                            //String Username=null;
-                                                            int Amount_to_pay=0;
-                                                            int Payment_Period=0;
-                                                            int Cleared_Amount=0;
-                                                            int Loan_Balance =0;
+                                                           // String LoanID = applicationNumber;
+                                                            String MemberID = SelectMemberNumber(loggedInUsername);
+
+                                                            int Amount_to_pay=(int)finalApproovedLoan;
+                                                            int Payment_Period =  months;
+                                                            int Cleared_Amount=ClearedAmount(loggedInUsername);
+                                                            int Loan_Balance = (((int)(LoanFromSystem(userInput)))-(Cleared_Amount));
                                                             
                                                         
-                                                            pr.println("Dear Mr/Mrs "+loggedInUsername+ "your loan of amount :"+LoanApproved+" has been succesfully granted .");
-                                                            // method to accept loan push the loan to sacco_active_loans
-                                                            AcceptLoan(LoanID, MemberID, loggedInUsername, Amount_to_pay, Payment_Period, Cleared_Amount, Loan_Balance);
+                                                            pr.println("Dear Mr/Mrs "+loggedInUsername+ " your loan of amount :"+finalApproovedLoan+" has been succesfully granted .");
+
+                                                            
+                                                            AcceptLoan( MemberID, loggedInUsername, Amount_to_pay, Payment_Period, Cleared_Amount, Loan_Balance);
+                                                            
+
                                                             //also delete the loan request
                                                             LoanDenied(loggedInUsername);
 
 
                                                         }else if(respond.equalsIgnoreCase("no")){
 
-                                                            pr.println("Dear Mr/Mrs "+loggedInUsername+ "you you have revoked the loan of amount: "+LoanApproved);
+                                                            pr.println("Dear Mr/Mrs "+loggedInUsername+ " you you have revoked the loan of amount: "+LoanApproved);
+
                                                             // method to deny the loan and delete the loan from the loan_requests table
                                                             LoanDenied(loggedInUsername);
 
@@ -223,13 +239,10 @@ public class Server {
                                                     
                                                         }
 
-                                                   // }
+                                                   
                                                 }
 
-                                                
-                                                    
-                                            
-                                                      
+                                               
                                                     
                                             }else{
                                                     pr.println("Please provide all fields for the LoanRequestStatus ");
@@ -799,7 +812,8 @@ public class Server {
     //method to handle @ scenario in GroupingContributions
     private static double LoanFromSystem(String LoanAppNo){
         //int amountToGive = In
-        double give =-1.0;
+
+        double give =-1.0;   //....what if i remeove the ngtve
         String LoanDistributionResult = GroupingContributions(LoanAppNo);
         //String username =null ;
 
@@ -810,6 +824,7 @@ public class Server {
             give = getFinalBalancew(LoanAppNo)*0.5;
             return give;
         }else{
+            //comment to wilson's complaint
             give = getFinalBalancew(LoanAppNo)*0.75;
             return  give;
         }
@@ -864,29 +879,41 @@ public class Server {
 
 
 
-    //method to send the loan if accepted to the active loans table
-    private static void AcceptLoan(String LoanID,String MemberID,String Username,int Amount_to_pay,int Payment_Period,int Cleared_Amount,int Loan_Balance){
+    //method to calculate the time on interest
+    private static double timeforinterest(String Username){
+        double time ;
+        return time = (Double.parseDouble(SelectPaymentPeriod(Username))/12);
+    }
 
-        LoanID = SelectLoanAppNumber();
-        MemberID =SelectMemberNumber();
-        Amount_to_pay = (int)(LoanFromSystem(LoanID));
-        Payment_Period = Integer.parseInt(SelectPaymentPeriod());
-        Cleared_Amount =ClearedAmount(Username);
-        Loan_Balance = Amount_to_pay-Cleared_Amount;
+   // method to calculate the interest on the loan
+    public static double InterestMethod(double Principal,String LoanAppNo,double Time,String Username){
+        double LoanInterest;
+        Time = timeforinterest(Username);
+        Principal = (double) LoanFromSystem(LoanAppNo);
+        return LoanInterest = (Principal * InterestRate * Time);
+
+    }
+
+
+   
+    //method to send the loan if accepted to the active loans table
+    private static void AcceptLoan(String MemberID,String Username,int Amount_to_pay,int Payment_Period,int Cleared_Amount,int Loan_Balance){
+       
+        Loan_Balance = Amount_to_pay - Cleared_Amount;
 
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
 
-            String querry ="Insert into sacco_active_loans  (LoanID, MemberID, Username, Amount_to_pay, Payment_Period, Cleared_Amount, Loan_Balance, created_at, updated_at) values (?,?,?,?,?,?,?,now(),now())";
+            String querry ="Insert into sacco_active_loans  ( MemberID, Username, Amount_to_pay, Payment_Period, Cleared_Amount, Loan_Balance) values (? ,? ,? ,? ,? ,?)";
             PreparedStatement statement = connection.prepareStatement(querry);
-            statement.setString(1, LoanID);
-            statement.setString(2, MemberID);
-            statement.setString(3, Username);
-            statement.setInt(4, Amount_to_pay);
-            statement.setInt(5, Payment_Period);
-            statement.setInt(6, Cleared_Amount);
-            statement.setInt(7, Loan_Balance);
+            // statement.setString(1, LoanID);
+            statement.setString(1, MemberID);
+            statement.setString(2, Username);
+            statement.setInt(3, Amount_to_pay);
+            statement.setInt(4, Payment_Period);
+            statement.setInt(5, Cleared_Amount);
+            statement.setInt(6, Loan_Balance);
             statement.executeUpdate();
             
             
@@ -898,36 +925,38 @@ public class Server {
 
     }
 
-    private static String SelectLoanAppNumber(){
-        try {
-            JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
+    // private static String SelectLoanAppNumber(String Username){
+    //     try {
+    //         JDBC jdbcInstance = JDBC.getInstance();
+    //         Connection connection = jdbcInstance.getConnection();
 
-            String sql = "select * from sacco_loan_requests ";
-            PreparedStatement statement = connection.prepareStatement(sql);
+    //         String sql = "select * from sacco_loan_requests where username =? ";
+    //         PreparedStatement statement = connection.prepareStatement(sql);
+    //         statement.setString(1, Username);
 
-            ResultSet result =statement.executeQuery();
+    //         ResultSet result =statement.executeQuery();
 
-            if (result.next()) {
-                String LoanAppNumber = result.getString("LoanAppNumber");
-                return LoanAppNumber;
-            }
+    //         if (result.next()) {
+    //             String LoanAppNumber = result.getString("LoanAppNumber");
+    //             return LoanAppNumber;
+    //         }
 
 
             
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return "Not found";
-    }
+    //     } catch (Exception e) {
+    //         System.out.println(e.getMessage());
+    //     }
+    //     return "Not found";
+    // }
 
-    private static String SelectMemberNumber(){
+    private static String SelectMemberNumber(String Username){
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
 
-            String sql = "select * from sacco_members ";
+            String sql = "select * from sacco_members where Username =? ";
             PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, Username);
 
             ResultSet result =statement.executeQuery();
 
@@ -944,13 +973,14 @@ public class Server {
         return "Not found";
     }
 
-    private static int AmountToClearFromLoan(){
+    private static int AmountToClearFromLoan(String Username){
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
 
-            String sql = "select accountBalance from sacco_members ";
+            String sql = "select accountBalance from sacco_members where Username = ? ";
             PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, Username);
 
             ResultSet result =statement.executeQuery();
 
@@ -967,14 +997,15 @@ public class Server {
         return -1;
     }
 
-    private static String SelectPaymentPeriod(){
+    private static String SelectPaymentPeriod(String Username){
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
 
-            String sql = "select * from sacco_loan_requests ";
+            String sql = "select * from sacco_loan_requests where username =? ";
+            
             PreparedStatement statement = connection.prepareStatement(sql);
-
+            statement.setString(1, Username);
             ResultSet result =statement.executeQuery();
 
             if (result.next()) {
@@ -1010,7 +1041,7 @@ public class Server {
                 if (NumberofDeposits < 3) {
                     return 0;
                 }else{
-                    return  AmountToClearFromLoan() - (int)(0.5*LoanFromSystem(Username));
+                    return  AmountToClearFromLoan(Username) - (int)(0.5*LoanFromSystem(Username));
                 }
             }
 
