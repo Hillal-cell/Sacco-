@@ -33,7 +33,8 @@ public class Client {
                     System.out.println(serverResponse);
                   
 
-                    if (serverResponse.equals("=============================================You have successfully logged in. Here is the secured menu:=================================")) {
+                    if (serverResponse.equals(
+                            "=============================================You have successfully logged in. Here is the secured menu:=================================")) {
                         // Read the menu options until "END_MENU" marker is received
                         StringBuilder menuBuilder = new StringBuilder();
                         String menuOption;
