@@ -43,7 +43,10 @@ public class Server {
         } catch (Exception e) {
            
             System.out.println(e.getMessage());
+            
         } 
+
+        
       
 
 
@@ -52,7 +55,7 @@ public class Server {
             serverSoc = new ServerSocket(5656);
             System.out.println("Server running ...");
             ss = serverSoc.accept();
-            System.out.println("         New Client connection        ");
+            System.out.println("***********New Client connection************");
             pr = new PrintWriter(ss.getOutputStream(),true);
             
             fromclient = new Scanner(ss.getInputStream());
