@@ -113,36 +113,35 @@ public class Server {
                                             //return; // Exit the loop and terminate the session
                                         case "Deposit":
                                             if (command.length == 4) {
-                                                int output = deposit(loggedInUsername, command[1], command[2],
-                                                        command[3]);
+                                               
 
                                                 double inputAmount = Double.parseDouble(command[1]);
                                                 int receiptNumber = Integer.parseInt(command[3]);
-
+                                                int output = deposit(loggedInUsername, command[1], command[2], command[3]);
                                                 if (output == 0) {
                                                     
                                                     updateBalance(receiptNumber, inputAmount);
                                                     markReceiptAsUsed(receiptNumber);
 
 
-                                                     //pr.println("**********************************************************************");
+                                                    
 
-                                                     pr.println( "+=============================+" +"Dear MR/MRS " +loggedInUsername+ " your deposit of amount :" +inputAmount+" has been successfully made. New balance: UGX ." +getFinalBalance(loggedInUsername)+"+=============================+" );
+                                                    pr.println( "+******************************* +" +"Dear  " +loggedInUsername+ " your deposit of amount :" +inputAmount+" has been successfully made. Your new balanceis : UGX " +getFinalBalance(loggedInUsername)+" +******************************* +" );
 
-                                                   // pr.println("Dear MR/MRS " +loggedInUsername+ " your deposit of amount :" +inputAmount+" has been successfully made. New balance: UGX "+getFinalBalance(loggedInUsername) );
+                                                   // pr.println("Dear  " +loggedInUsername+ " your deposit of amount :" +inputAmount+" has been successfully made. New balance: UGX "+getFinalBalance(loggedInUsername) );
                                                             
                                                 } else if (output == 1) {
-                                                    pr.println("Deposit has already been made with receipt number: "+receiptNumber);
+                                                    pr.println("******************************* Dear "+loggedInUsername+" your deposit has already been made for  receipt number: "+receiptNumber+ "  *******************************");
                                                             
                                                 } else {
-                                                     //pr.println("**********************************************************************");
+                                                     
 
-                                                     pr.println( "+=============================+ Deposit failed. Receipt number " +receiptNumber +" does not exist. Please try again after 24 HRS. +=============================+" );
-                                                   // pr.println("Deposit failed. Receipt number " +receiptNumber +" does not exist. Please try again after 24 HRS.");
+                                                    pr.println( "+******************************* + Deposit failed. Receipt number " +receiptNumber +" does not exist. Please try again after 24 HRS. +******************************* +" );
+                                                   
                                                             
                                                 }
                                             } else {
-                                                pr.println("Invalid deposit command format. Please provide all the required parameters.");
+                                                pr.println("  =============================  Invalid deposit command format. Please provide all the required parameters.  =============================");
                                                         
                                             }
                                             break;
@@ -157,21 +156,25 @@ public class Server {
 
                                                 if (LoanResult.startsWith("L")) {
 
-                                                    //pr.println("************************************************************************");
-                                                    pr.println("Dear MR/MRS "+loggedInUsername+" your loan request of ugx "+amountrest+" to be paid in "+months+" month/s has been received for processing Your loan application number is : "+LoanResult);
-                                                   // pr.println("************************************************************************");
+                                                    
+                                                    pr.println("*******************************  Dear  "+loggedInUsername+" your loan request of ugx "+amountrest+" to be paid in "+months+" month/s has been received for processing Your loan application number is : "+LoanResult+" *******************************");
+                                                   
 
                                                     System.out.println("Loan request made and assigned the loan Application Number : "+LoanResult);
 
                                                 }else{
-                                                        pr.println("*******************************");
-
-                                                     pr.println( "+=============================+" +"|LoanResult failed" +"+=============================+" );
+                                                        
+                                                        pr.println( "=============================" + " LoanResult failed " +" =============================" );
+                                                            
                                                     }
 
                                                 
                                             }else {
-                                                pr.println("Invalid Loan request command format. Please provide all the required parameters.");
+
+
+
+                                               pr.println(" =============================" + "Invalid Loan request command format. Please provide all the required parameters." +"=============================");
+                                                
                                             }
                                             
                                             
@@ -191,25 +194,25 @@ public class Server {
                                                
                                                 if ((gotten.equals("Not gotten"))||(gotten.equals("Not found")) && (status.equals("No status"))) {
 
-                                                    pr.println("Oops ! currently there's no loan application for the above number");
+                                                    pr.println("============================= Oops ! currently there's no loan application for the above number =============================");
 
                                                 
 
                                                 }else if ( status.equals("Pending")) {
-                                                    pr.println("Dear our customer your loan for the loan application number : "+applicationNumber +" is still pending");
+                                                    pr.println("******************************* Dear our customer your loan for the loan application number : "+applicationNumber +" is still pending");
                                                     System.out.println("Checked status of a pending loan ");
 
 
                                                 } else  if  ( status.equals("Processing")) {
 
-                                                    pr.println("Dear customer your loan request of application number : "+applicationNumber+" is still under processing");
+                                                    pr.println("******************************* Dear customer your loan request of application number : "+applicationNumber+" is still under processing *******************************");
                                                     System.out.println("Checked status of  loan under processing");
                                                         
                                                 }
                                                 
                                                 // }
                                                 else {
-                                                    pr.println("Dear customer your loan request of application number : "+applicationNumber+" has been activated and the suggested amount is : "+LoanApproved + "with interest :"+interest+" totaling to :"+finale+" please type \"YES\" to accept the loan or \"NO\" to reject the  loan");
+                                                    pr.println("******************************* Dear customer your loan request of application number : "+applicationNumber+" has been activated and the suggested amount is : "+LoanApproved + "with interest :"+interest+" totaling to :"+finale+" please type YES or NO :*******************************");
                                                     pr.print("Confirm loan:");
 
                                                     String response = fromclient.nextLine();
@@ -224,15 +227,22 @@ public class Server {
 
 
 
-                                                       // Accept(MemberNumber, loggedInUsername, PhoneNumber, PhoneNumber, PhoneNumber);
+                                                       
 
                                                        AcceptLoan(MemberID, loggedInUsername, finale, Payment_Period, Cleared_Amount, Loan_Balance);
 
-                                                        pr.println("Dear Mr/Mrs "+loggedInUsername+" your loan of amount : "+finale+ "has been succesfully confirmed. ");
-                                                        System.out.println("loan activated");
+                                                       DeleteFromLoanRequests(loggedInUsername);
+
+                                                        pr.println("******************************* Dear  "+loggedInUsername+" your loan of amount : "+finale+ "has been succesfully confirmed .******************************* ");
+                                                       
 
 
                                                     }else{
+
+
+                                                        DeleteFromLoanRequests(loggedInUsername);
+
+                                                        pr.println(" ******************************* Dear  "+loggedInUsername+" you have successfully revoked your loan of total amount : "+finale +" ******************************* ");
 
 
                                                     }
@@ -247,7 +257,7 @@ public class Server {
                                                       
                                                     
                                             }else{
-                                                    pr.println("Please provide all fields for the LoanRequestStatus ");
+                                                    pr.println("============================= Please provide all fields for the LoanRequestStatus =============================");
                                                 }
 
 
@@ -287,15 +297,14 @@ public class Server {
                                               
                                             break;
                                         default:
-                                            pr.println("Please follow the menu to acces the services.");
+                                            pr.println("============================= Please follow the menu to acces the services. =============================");
                                            
                                     }
                                    
                                 }
 
                             } else {
-                                pr.println(
-                                        "Authentication failed. Invalid credentials. If you have forgotten your password, use: forgotPassword <membernumber> <phonenumber>");
+                                pr.println( "=============================Authentication failed. Invalid credentials. If you have forgotten your password, use: forgotPassword <membernumber> <phonenumber> =============================");
                             }
                             break;
                         case "forgotPassword":
@@ -305,7 +314,7 @@ public class Server {
 
                                
 
-                                pr.println("Please return after a day while your issue has been resolved. Your reference number is: "+ ReferenceNumber(command[1],Integer.parseInt(command[2])));
+                                pr.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@ Please return after a day while your issue has been resolved. Your reference number is: "+ ReferenceNumber(command[1],Integer.parseInt(command[2]))+"  @@@@@@@@@@@@@@@@@@@@@@@@@@@ ");
                             } else if (validateMemberInformation(command[1], command[2]) == null) {
                                 break;
                             } else {
@@ -313,11 +322,11 @@ public class Server {
                             }
                             break;
                         default:
-                            pr.println("Unknown command");
+                            pr.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@   UNKWON COMMAND  @@@@@@@@@@@@@@@@@@@@@@@@@@@ ");
                             break;
                     }
                 } else {
-                    pr.println("Please log into the system to access the secured menu.");
+                    pr.println(" %%%%%%%%%%%% Please log into the system to access the secured menu. %%%%%%%%%%%%");
                 }
             }
 
@@ -328,14 +337,14 @@ public class Server {
         }catch (Exception  e) {
            if (userInput != null) {//added this check statem
             if (userInput.equalsIgnoreCase("logout")) {
-                System.out.println("user logged out of system");
+                System.out.println(" <><><><><><> User logged out of system <><><><><><>");
                
             }
 
             System.out.println("Error !"+e.getMessage());
             pr.println("Internal Server run down please try again later!");
         }
-    }//and this
+    }
 
                 
     }
@@ -751,18 +760,6 @@ public class Server {
 
 
 
-    // //method to calculate percentage loan progress 
-    // private static double loanprogress(int monthsCleared,int expectedMonths){
-        
-    //     double Ploanprogress;
-
-    //     Ploanprogress = (monthsCleared/expectedMonths)*100;
-
-    //     return Ploanprogress;
-
-
-    // }
-
 
     //method to add the interest to amount generateed by system
     private static double InterestMethod(String LoanAppNo){
@@ -802,26 +799,6 @@ public class Server {
     }
 
 
-    private static String SelectLoanAppNumber() {
-        try {
-            JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
-
-            String sql = "select * from sacco_loan_requests ";
-            PreparedStatement statement = connection.prepareStatement(sql);
-
-            ResultSet result = statement.executeQuery();
-
-            if (result.next()) {
-                String LoanAppNumber = result.getString("LoanAppNumber");
-                return LoanAppNumber;
-            }
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return "Not found";
-    }
 
     private static String SelectMemberNumber() {
         try {
