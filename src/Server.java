@@ -99,13 +99,15 @@ public class Server {
                                 }
                                 pr.println("END_MENU");
 
+                            
+                               
+
                                 // Loop to handle user commands within the logged-in session
                                 while (true) {
                                     userInput = fromclient.nextLine();
                                     System.out.println(userInput);
                                     command = userInput.split(" ");
-                                    
-                                    
+                                        
                                     switch (command[0]) {
                                         case "logout":
                                             //pr.println("You have been logged out. Thank you for using our service.");
@@ -208,6 +210,8 @@ public class Server {
                                                     pr.println("******************************* Dear customer your loan request of application number : "+applicationNumber+" is still under processing *******************************");
                                                     System.out.println("Checked status of  loan under processing");
                                                         
+                                                }else if ( finale <=0) {
+                                                    pr.println("********************************** Dear customer your loan has been denied **********************************");
                                                 }
                                                 
                                                 // }
@@ -220,10 +224,9 @@ public class Server {
                                                     if (response.equalsIgnoreCase("yes")) {
 
                                                        String MemberID = SelectMemberNumber();
-                                                       double Amount_to_pay =  (LoanFromSystem(loggedInUsername));
                                                        int Payment_Period = Integer.parseInt(SelectPaymentPeriod());
-                                                       double Cleared_Amount = ClearedAmount(loggedInUsername);
-                                                       double Loan_Balance = Amount_to_pay - Cleared_Amount;
+                                                       double Cleared_Amount = 0.0;
+                                                       double Loan_Balance = finale - Cleared_Amount;
 
 
 
@@ -764,7 +767,11 @@ public class Server {
     //method to add the interest to amount generateed by system
     private static double InterestMethod(String LoanAppNo){
         double Principal = LoanFromSystem(LoanAppNo);
-        
+
+        if (Principal <= 0) {
+            Principal = 0; // Set Principal to zero if it's less than zero or negative
+        }
+
         double time = (Double.parseDouble(SelectPaymentPeriod())/12);
         double interest;
         return interest = Principal*rate* (double)time;
@@ -821,26 +828,7 @@ public class Server {
         return "Not found";
     }
 
-    private static int AmountToClearFromLoan() {
-        try {
-            JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
 
-            String sql = "select accountBalance from sacco_members ";
-            PreparedStatement statement = connection.prepareStatement(sql);
-
-            ResultSet result = statement.executeQuery();
-
-            if (result.next()) {
-                int subtraction = result.getInt("accountBalance");
-                return subtraction;
-            }
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return -1;
-    }
 
     private static String SelectPaymentPeriod() {
         try {
@@ -863,37 +851,9 @@ public class Server {
         return "Not found";
     }
 
-    // method to give us the cleared amount
-    private static int ClearedAmount(String Username) {
+   
 
-        try {
-            JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
-
-            String query = "select count(receiptNumber) as NumberOfDeposits from sacco_deposits  where Username = ?";
-            PreparedStatement statement = connection.prepareStatement(query);
-            statement.setString(1, Username);
-
-            ResultSet result = statement.executeQuery();
-
-            if (result.next()) {
-                int NumberofDeposits = result.getInt(1);
-
-                if (NumberofDeposits < 3) {
-                    return 0;
-                } else {
-                    return AmountToClearFromLoan() - (int) (0.5 * LoanFromSystem(Username));
-                }
-            }
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return -1;
-    }
-
-
-    //method to delete the loan from the loan requests table after user approoves or denies it
+    //method to delete the loan from the loan requests table after user denies it
     private static void DeleteFromLoanRequests(String username ){
         try {
             
@@ -998,7 +958,7 @@ public class Server {
         //String username =null ;
 
         if (LoanDistributionResult.equals("Low")) {
-            give = getFinalBalancew(LoanAppNo)*0.25;
+           // give = getFinalBalancew(LoanAppNo)*0.25;
             return give;
         }else if (LoanDistributionResult.equals("Average")) {
             give = getFinalBalancew(LoanAppNo)*0.5;
@@ -1057,7 +1017,6 @@ public class Server {
             System.out.println("Error marking receipt as used: " + e.getMessage());
         }
     }
-
 
 
     
