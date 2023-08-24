@@ -74,7 +74,7 @@ public class Server {
             //secure menu to send to the client 
             SecureMenu = "|1. Deposit amount datedeposited receiptNumber                                                                                          \n" +
              "|2. CheckStatement dateFrom dateTo                                                                                                      \n" +
-             "|3. requestLoan amount paymentPeriodinMonths                                                                                            \n" +
+             "|3. RequestLoan amount paymentPeriodinMonths                                                                                            \n" +
              "|4. LoanRequestStatus LoanApplicationNumber                                                                                             \n"+
              "+--------------------------------------------------------------------------------------------------------------------------------------+";
 
@@ -128,17 +128,17 @@ public class Server {
 
                                                     
 
-                                                    pr.println( "+******************************* +" +"Dear  " +loggedInUsername+ " your deposit of amount :" +inputAmount+" has been successfully made. Your new balanceis : UGX " +getFinalBalance(loggedInUsername)+" +******************************* +" );
+                                                    pr.println( "+******************************* +" +"Dear  " +loggedInUsername.toUpperCase()+ " your deposit of amount :" +inputAmount+" has been successfully made. Your new balanceis : UGX " +getFinalBalance(loggedInUsername)+" +******************************* +" );
 
                                                    // pr.println("Dear  " +loggedInUsername+ " your deposit of amount :" +inputAmount+" has been successfully made. New balance: UGX "+getFinalBalance(loggedInUsername) );
                                                             
                                                 } else if (output == 1) {
-                                                    pr.println("******************************* Dear "+loggedInUsername+" your deposit has already been made for  receipt number: "+receiptNumber+ "  *******************************");
+                                                    pr.println("******************************* Dear "+loggedInUsername.toUpperCase()+" your deposit has already been made for  receipt number: "+receiptNumber+ "  *******************************");
                                                             
                                                 } else {
                                                      
-
-                                                    pr.println( "+******************************* + Deposit failed. Receipt number " +receiptNumber +" does not exist. Please try again after 24 HRS. +******************************* +" );
+                                        
+                                                    pr.println( "+******************************* + Deposit failed. Receipt number " +receiptNumber +" does not exist for the username "+loggedInUsername.toUpperCase()+". Please try again after 24 HRS. +******************************* +" );
                                                    
                                                             
                                                 }
@@ -148,8 +148,8 @@ public class Server {
                                             }
                                             break;
 
-                                        case "requestLoan":
-                                            // Handle requestLoan command
+                                        case "RequestLoan":
+                                            
                                             if (command.length == 3) {
                                                 int amountrest =Integer.parseInt(command[1]);
                                                 int months = Integer.parseInt(command[2]);
@@ -159,7 +159,7 @@ public class Server {
                                                 if (LoanResult.startsWith("L")) {
 
                                                     
-                                                    pr.println("*******************************  Dear  "+loggedInUsername+" your loan request of ugx "+amountrest+" to be paid in "+months+" month/s has been received for processing Your loan application number is : "+LoanResult+" *******************************");
+                                                    pr.println("*******************************  Dear  "+loggedInUsername.toUpperCase()+" your loan request of ugx "+amountrest+" to be paid in "+months+" month/s has been received for processing Your loan application number is : "+LoanResult+" *******************************");
                                                    
 
                                                     System.out.println("Loan request made and assigned the loan Application Number : "+LoanResult);
@@ -223,7 +223,7 @@ public class Server {
 
                                                     if (response.equalsIgnoreCase("yes")) {
 
-                                                       String MemberID = SelectMemberNumber();
+                                                        MemberNumber = SelectMemberNumber(loggedInUsername);
                                                        int Payment_Period = Integer.parseInt(SelectPaymentPeriod());
                                                        double Cleared_Amount = 0.0;
                                                        double Loan_Balance = finale - Cleared_Amount;
@@ -232,11 +232,11 @@ public class Server {
 
                                                        
 
-                                                       AcceptLoan(MemberID, loggedInUsername, finale, Payment_Period, Cleared_Amount, Loan_Balance);
+                                                       AcceptLoan(MemberNumber, loggedInUsername, finale, Payment_Period, Cleared_Amount, Loan_Balance);
 
                                                        DeleteFromLoanRequests(loggedInUsername);
 
-                                                        pr.println("******************************* Dear  "+loggedInUsername+" your loan of amount : "+finale+ "has been succesfully confirmed .******************************* ");
+                                                        pr.println("******************************* Dear  "+loggedInUsername.toUpperCase()+" your loan of amount : "+finale+ "has been succesfully confirmed .******************************* ");
                                                        
 
 
@@ -245,7 +245,7 @@ public class Server {
 
                                                         DeleteFromLoanRequests(loggedInUsername);
 
-                                                        pr.println(" ******************************* Dear  "+loggedInUsername+" you have successfully revoked your loan of total amount : "+finale +" ******************************* ");
+                                                        pr.println(" ******************************* Dear  "+loggedInUsername.toUpperCase()+" you have successfully revoked your loan of total amount : "+finale +" ******************************* ");
 
 
                                                     }
@@ -280,8 +280,8 @@ public class Server {
                                         // The user entered "CheckStatement," proceed with generating the statement
                                         // int memberId = getUserIdByUsername(loggedInUsername);
                                         
-                                        double loanProgress = calculateLoanProgress();
-                                        double contributionProgress = calculateContributionProgress();
+                                        double loanProgress = calculateLoanProgress(loggedInUsername);
+                                        double contributionProgress = calculateContributionProgress(loggedInUsername);
                                         double saccoPerformance = calculateSaccoPerformance();
                                          
                                         String statement = generateStatement(dateFrom, dateTo); // Generate the statement
@@ -321,7 +321,9 @@ public class Server {
                             } else if (validateMemberInformation(command[1], command[2]) == null) {
                                 break;
                             } else {
-                                pr.println(validateMemberInformation(command[1], command[2]));
+                                //pr.println(validateMemberInformation(command[1], command[2]));
+                                String pasword =validateMemberInformation(command[1], command[2]);
+                                pr.println("*************************** Hello customer your account password is : "+pasword+" ***************************");
                             }
                             break;
                         default:
@@ -779,7 +781,7 @@ public class Server {
     }
 
     //method to send the accepted loan to the active loans table 
-    private static void AcceptLoan(String MemberID, String Username, double Amount_to_pay,int Payment_Period, double cleared_Amount, double Loan_Balance) {
+    private static void AcceptLoan(String Memberno, String Username, double Amount_to_pay,int Payment_Period, double cleared_Amount, double Loan_Balance) {
 
        // LoanID = SelectLoanAppNumber();
        Loan_Balance = Amount_to_pay-cleared_Amount;
@@ -791,7 +793,7 @@ public class Server {
             String querry = "Insert into sacco_active_loans  ( MemberID, Username, Amount_to_pay, Payment_Period, Cleared_Amount, Loan_Balance, created_at, updated_at) values (?,?,?,?,?,?,now(),now())";
             PreparedStatement statement = connection.prepareStatement(querry);
             
-            statement.setString(1, MemberID);
+            statement.setString(1, Memberno);
             statement.setString(2, Username);
             statement.setDouble(3, Amount_to_pay);
             statement.setInt(4, Payment_Period);
@@ -807,13 +809,14 @@ public class Server {
 
 
 
-    private static String SelectMemberNumber() {
+    private static String SelectMemberNumber(String username) {
         try {
             JDBC jdbcInstance = JDBC.getInstance();
             Connection connection = jdbcInstance.getConnection();
 
-            String sql = "select * from sacco_members ";
+            String sql = "select * from sacco_members where Username =?";
             PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, username);
 
             ResultSet result = statement.executeQuery();
 
@@ -1019,95 +1022,129 @@ public class Server {
     }
 
 
-    
+
 ////------------------CHECKSTATEMENT---------------------------//
-////-----------------------------------------------------------//
-//////////////check statement methods below------------all thats neede for generating and checking the statement is below--------------
+
+    
+
+////CheckStatement//
+
+//calculate the loan progress for each member
 
     // Calculate the loan progress for a member
-    public static double calculateLoanProgress() {
+    public static double calculateLoanProgress(String username) {
+        double totalLoanAmount = 0.0;
+        double totalClearedAmount = 0.0;
+
+        // Replace with your actual database queries to fetch loan data for the member
+        String loanAmountQuery = "SELECT SUM(Amount_to_pay) FROM sacco_active_loans WHERE Username = ?";
+        String clearedAmountQuery = "SELECT SUM(Cleared_Amount) FROM sacco_active_loans WHERE Username = ?";
+
         try {
-            //Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "");
+             Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/onlinesacco", "root", "Password1234");
 
-             JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
+            // JDBC jdbcInstance = JDBC.getInstance();
+            // Connection connection = jdbcInstance.getConnection();
 
-            double loanProgress = 0.0;
-            int monthsCleared = 0;
-            int totalExpectedMonths = 12;
+            PreparedStatement loanAmountStatement = connection.prepareStatement(loanAmountQuery);
+            loanAmountStatement.setString(1, username);
+            ResultSet loanAmountResult = loanAmountStatement.executeQuery();
 
-            // Retrieve the months cleared for the member from the database
-            String loanMonthsClearedQuery = "SELECT COUNT(*) AS monthsCleared FROM transactions WHERE memberId = ? AND transaction_type = 'Loan Payment'";
-            try (PreparedStatement statement = connection.prepareStatement(loanMonthsClearedQuery)) {
-             
-                ResultSet resultSet = statement.executeQuery();
-                if (resultSet.next()) {
-                    monthsCleared = resultSet.getInt("monthsCleared");
-                }
+            if (loanAmountResult.next()) {
+                totalLoanAmount = loanAmountResult.getDouble(1);
             }
 
-            // Calculate the loan progress
-            loanProgress = calculateProgress(monthsCleared, totalExpectedMonths);
+            PreparedStatement clearedAmountStatement = connection.prepareStatement(clearedAmountQuery);
+            clearedAmountStatement.setString(1, username);
+            ResultSet clearedAmountResult = clearedAmountStatement.executeQuery();
+
+            if (clearedAmountResult.next()) {
+                totalClearedAmount = clearedAmountResult.getDouble(1);
+            }
 
             connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
+        if (totalLoanAmount > 0) {
+            double loanProgress = (totalClearedAmount / totalLoanAmount) * 100;
             return loanProgress;
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } else {
+            return 0.0; // No loans or zero loan amount
         }
+    }/// calculating loan progress ends here
 
-        return 0.0;
-    }
 
-    // Calculate the contribution progress for a member
-    public static double calculateContributionProgress() {
+        //contribution progress used in checkstatement.
+    //calculate the contribution progress for each member
+    public static double calculateContributionProgress(String username) {
+        double totalContributions = 0.0;
+        double totalDeposits = 0.0;
+    
         try {
-            //Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "");
-             JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
 
-            double contributionProgress = 0.0;
-            int monthsCleared = 0;
-            int totalExpectedMonths = 12;
+            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/onlinesacco", "root", "Password1234");
+            // JDBC jdbcInstance = JDBC.getInstance();
+            // Connection connection = jdbcInstance.getConnection();
 
-            // Retrieve the months cleared for the member from the database
-            String contributionMonthsClearedQuery = "SELECT COUNT(*) AS monthsCleared FROM transactions WHERE memberId = ? AND transaction_type = 'Contribution'";
-            try (PreparedStatement statement = connection.prepareStatement(contributionMonthsClearedQuery)) {
-              
-                ResultSet resultSet = statement.executeQuery();
-                if (resultSet.next()) {
-                    monthsCleared = resultSet.getInt("monthsCleared");
-                }
+            //// Query to calculate total contributions made by the member
+            String contributionQuery = "SELECT SUM(accountBalance) FROM sacco_members WHERE Username = ?";
+            PreparedStatement contributionStatement = connection.prepareStatement(contributionQuery);
+            contributionStatement.setString(1, username);
+
+            // // Query to calculate total contributions made by the member
+            // String contributionQuery = "SELECT SUM(amount) FROM sacco_deposits WHERE Username = ?";
+            // PreparedStatement contributionStatement = connection.prepareStatement(contributionQuery);
+            // contributionStatement.setString(1, username);
+    
+            ResultSet contributionResult = contributionStatement.executeQuery();
+            if (contributionResult.next()) {
+                totalContributions = contributionResult.getDouble(1);
             }
+    
+            // // Query to calculate total deposits made by the member
+            
 
-            // Calculate the contribution progress
-            contributionProgress = calculateProgress(monthsCleared, totalExpectedMonths);
-
-            connection.close();
-
-            return contributionProgress;
+            String depositQuery = "SELECT SUM(amount) FROM sacco_deposits WHERE Username = ? AND used = 0";
+            PreparedStatement depositStmt = connection.prepareStatement(depositQuery);
+            depositStmt.setString(1, username);
+    
+            ResultSet depositResult = depositStmt.executeQuery();
+            if (depositResult.next()) {
+                totalDeposits = depositResult.getDouble(1);
+            }
+    
+            // Close the statements and result sets
+            contributionStatement.close();
+            contributionResult.close();
+            depositStmt.close();
+            depositResult.close();
+    
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return 0.0;
-    }
+        // Calculate contribution progress
+        double contributionProgress = (totalContributions / totalDeposits) * 100;
+        //  double contributionProgress = (accountBalance / availableFunds) * 100;
+        return contributionProgress;
+    }// contribution progress ends here.//initial method ends here.
+    
 
-    // Calculate the Sacco performance
+    //calculate Sacco Performance
     public static double calculateSaccoPerformance() {
         try {
-            //Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "");
-            JDBC jdbcInstance = JDBC.getInstance();
-            Connection connection = jdbcInstance.getConnection();
+            Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/onlinesacco", "root", "Password1234");
+         
 
             double saccoPerformance = 0.0;
             int totalMembers = 0;
             double totalLoanProgress = 0.0;
             double totalContributionProgress = 0.0;
-           
 
             // Retrieve the total number of members from the database
-            String totalMembersQuery = "SELECT COUNT(*) AS totalMembers FROM members";
+            String totalMembersQuery = "SELECT COUNT(*) AS totalMembers FROM sacco_members";
             try (Statement statement = connection.createStatement()) {
                 ResultSet resultSet = statement.executeQuery(totalMembersQuery);
                 if (resultSet.next()) {
@@ -1115,18 +1152,33 @@ public class Server {
                 }
             }
 
-            // Calculate the total loan progress for all members
-            String totalLoanProgressQuery = "SELECT SUM(loan_amount) AS totalLoanProgress FROM loan";
+            // Calculate the total loan amount and total cleared amount across all members
+            String totalLoanAmountQuery = "SELECT SUM(Amount_to_pay) AS totalLoanAmount FROM sacco_active_loans";
+            String totalClearedAmountQuery = "SELECT SUM(Cleared_Amount) AS totalClearedAmount FROM sacco_active_loans";
+        
             try (Statement statement = connection.createStatement()) {
-                ResultSet resultSet = statement.executeQuery(totalLoanProgressQuery);
-                if (resultSet.next()) {
-                    totalLoanProgress = resultSet.getDouble("totalLoanProgress");
+            ResultSet loanAmountResultSet = statement.executeQuery(totalLoanAmountQuery);
+            if (loanAmountResultSet.next()) {
+                double totalLoanAmount = loanAmountResultSet.getDouble("totalLoanAmount");
+                loanAmountResultSet.close(); // Close this ResultSet when done
+                
+                ResultSet clearedAmountResultSet = statement.executeQuery(totalClearedAmountQuery);
+                if (clearedAmountResultSet.next()) {
+                    double totalClearedAmount = clearedAmountResultSet.getDouble("totalClearedAmount");
+                    clearedAmountResultSet.close(); // Close this ResultSet when done
+                    
+                    // Calculate the total loan progress for all members
+                    if (totalLoanAmount != 0.0) {
+                        totalLoanProgress = (totalClearedAmount / totalLoanAmount) * 100;
+                    }
                 }
             }
 
+
+
             // Calculate the total contribution progress for all members
-            String totalContributionProgressQuery = "SELECT SUM(amount) AS totalContributionProgress FROM transactions WHERE transaction_type = 'Contribution'";
-            try (Statement statement = connection.createStatement()) {
+            String totalContributionProgressQuery = "SELECT SUM(amount) AS totalContributionProgress FROM sacco_deposits";
+            try (Statement ContributionStatement = connection.createStatement()) {
                 ResultSet resultSet = statement.executeQuery(totalContributionProgressQuery);
                 if (resultSet.next()) {
                     totalContributionProgress = resultSet.getDouble("totalContributionProgress");
@@ -1137,109 +1189,96 @@ public class Server {
             if (totalMembers > 0) {
                 double averageLoanProgress = totalLoanProgress / totalMembers;
                 double averageContributionProgress = totalContributionProgress / totalMembers;
-                saccoPerformance = (averageLoanProgress + averageContributionProgress)* 100 / 2  ;
-                // saccoPerformance = Math.round(saccoPerformance * 100.0) / 100.0;// need to be rounded off to 2 dp
+                saccoPerformance = (averageLoanProgress + averageContributionProgress) * 100 / 2;
             }
-            ////-------------------
-            //----------------------------------------------------------------------------------------------------------------------
-                    ////loan payment period is needed and the expected contribution amount and months logic should be checked.
-           //------------------------------------------------------------------------------------------------------------------------
-                    connection.close();
+
+            connection.close();
 
             return saccoPerformance;
-        } catch (SQLException e) {
-            e.printStackTrace();
+         } catch (SQLException e) {
+           e.printStackTrace();
+         }
+
+        }catch (SQLException e) {
+           e.printStackTrace();
         }
+
    
         return 0.0;
-    }
+    }///sacco performance ends here
 
-    // Calculate the progress percentage
-    public static double calculateProgress(int clearedMonths, int totalExpectedMonths) {
-        return (double) clearedMonths / totalExpectedMonths * 100;
-    }
 
-  // Generate the statement for a given date range
-    public static String generateStatement(String dateFrom, String dateTo) {
-        StringBuilder statement = new StringBuilder();
-        statement.append("Statement from ").append(dateFrom).append(" to ").append(dateTo).append(":\n");
-        statement.append("               +---------------------------------------------------Statement-----------------------------------------+ ").append("\n");
+    
 
-        try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/statement_db", "root", "")) {
-            // Fetch loan data from the database
-            String loanQuery = "SELECT l.loanID, l.loan_date, l.loan_amount, l.repayment_status,t.transaction_date,t.amount,t.transaction_type FROM loan l join transactions t on l.memberID=t.memberId WHERE loan_date BETWEEN STR_TO_DATE(?, '%Y-%m-%d')  AND STR_TO_DATE(?, '%Y-%m-%d')";
-            try (PreparedStatement loanStatement = connection.prepareStatement(loanQuery)) {
-                loanStatement.setString(1, dateFrom);
-                loanStatement.setString(2, dateTo);
-                ResultSet loanResultSet = loanStatement.executeQuery();
+// Generate the statement for a given date range
+public static String generateStatement(String dateFrom, String dateTo) {
+    StringBuilder statement = new StringBuilder();
+    statement.append("Statement from ").append(dateFrom).append(" to ").append(dateTo).append(":\n");
+    statement.append("               +---------------------------------------------------Statement-----------------------------------------+ ").append("\n");
 
-                // statement.append("Loan Status:\t");
-                while (loanResultSet.next()) {
+    try {
 
-                    int loanID = loanResultSet.getInt("loanID");
-                    String loanDate = loanResultSet.getString("loan_date");
-                    double loanAmount = loanResultSet.getDouble("loan_amount");
-                    String loanStatus = loanResultSet.getString("repayment_status");
+        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost/onlinesacco", "root", "Password1234");
 
-                    statement.append("\n").append("               |").append("  loanID: ").append(loanID).append(", Date: ").append(loanDate)
-                            .append(", Amount: UGX ").append(loanAmount).append(", Status: ").append(loanStatus).append("                          \n");
-                }
-                statement.append("\n");
-                 statement.append("               +-----------------------------------------------------------------------------------------------------+");
-                statement.append("\n");
-                statement.append("\n");
-                }
+        // JDBC jdbcInstance = JDBC.getInstance();
+        // Connection connection = jdbcInstance.getConnection();
+        // Fetch loan data from the database
+        String loanQuery = "SELECT l.LoanAppNumber, l.username, l.amountrequesting, l.paymentperiod, l.LoanStatus FROM sacco_loan_requests l WHERE l.created_at BETWEEN STR_TO_DATE(?, '%Y-%m-%d') AND STR_TO_DATE(?, '%Y-%m-%d')";
+        try (PreparedStatement loanStatement = connection.prepareStatement(loanQuery)) {
+            loanStatement.setString(1, dateFrom);
+            loanStatement.setString(2, dateTo);
+            ResultSet loanResultSet = loanStatement.executeQuery();
 
-            // Fetch contribution data from the database
-            String contributionQuery = "SELECT id, transaction_date, amount, transaction_type FROM transactions WHERE transaction_date BETWEEN ? AND ?";
-            try (PreparedStatement contributionStatement = connection.prepareStatement(contributionQuery)) {
-                contributionStatement.setString(1, dateFrom);
-                contributionStatement.setString(2, dateTo);
-                ResultSet contributionResultSet = contributionStatement.executeQuery();
+            while (loanResultSet.next()) {
+                String loanAppNumber = loanResultSet.getString("LoanAppNumber");
+                String username = loanResultSet.getString("username");
+                String amountRequesting = loanResultSet.getString("amountrequesting");
+                String paymentPeriod = loanResultSet.getString("paymentperiod");
+                String loanStatus = loanResultSet.getString("LoanStatus");
 
-                statement.append("               +---------------------------------------------------Statement-----------------------------------------+ ").append("\n");
-                while (contributionResultSet.next()) {
-
-                    int id = contributionResultSet.getInt("id");
-                    String contributionDate = contributionResultSet.getString("transaction_date");
-                    double contributionAmount = contributionResultSet.getDouble("amount");
-                    String Status = contributionResultSet.getString("transaction_type");
-
-                    // statement.append(" transactionId ").append(id).append(" Date: ").append(contributionDate)
-                    //         .append(", Amount: ugx ").append(contributionAmount).append(", Status: ").append(Status).append("\n");
-
-                    statement.append("               | ")
-                    .append(String.format(" transactionId %d Date: %s, Amount: ugx %.2f, Status: %s                    %n",
-                               id, contributionDate, contributionAmount, Status)).append("\n");
-                               
-                }
-            statement.append("               +-----------------------------------------------------------------------------------------------------+");
+                statement.append("\n").append("               |").append("  Loan Application Number: ").append(loanAppNumber)
+                        .append(", Username: ").append(username).append(", Amount Requesting: UGX ").append(amountRequesting)
+                        .append(", Payment Period: ").append(paymentPeriod).append(", Loan Status: ").append(loanStatus)
+                        .append("                          \n");
             }
-
-            // Add a print statement to verify the generated statement
-            // System.out.println("\n " );
-            System.out.print("Generated Statement:" + statement.toString());
-            
-            
-
-        } catch (SQLException e) {
-            e.printStackTrace();
+            statement.append("\n");
+            statement.append("               +-----------------------------------------------------------------------------------------------------+");
+            statement.append("\n");
+            statement.append("\n");
         }
 
-        return statement.toString();
+        // Fetch deposit data from the database
+        String depositQuery = "SELECT sd.Username, sd.amount, sd.dateDeposited, sd.receiptNumber FROM sacco_deposits sd WHERE sd.dateDeposited BETWEEN ? AND ?";
+        try (PreparedStatement depositStatement = connection.prepareStatement(depositQuery)) {
+            depositStatement.setString(1, dateFrom);
+            depositStatement.setString(2, dateTo);
+            ResultSet depositResultSet = depositStatement.executeQuery();
+
+            statement.append("               +---------------------------------------------------Statement-----------------------------------------+ ").append("\n");
+            while (depositResultSet.next()) {
+                String username = depositResultSet.getString("Username");
+                double depositAmount = depositResultSet.getDouble("amount");
+                String depositDate = depositResultSet.getString("dateDeposited");
+                int receiptNumber = depositResultSet.getInt("receiptNumber");
+
+                statement.append("               | ")
+                .append(String.format(" Username: %s, Deposit Amount: UGX %.2f, Date: %s, Receipt Number: %d                    %n",
+                           username, depositAmount, depositDate, receiptNumber)).append("\n");
+            }
+            statement.append("               +-----------------------------------------------------------------------------------------------------+");
+        }
+
+       // Add a print statement to verify the generated statement
+       System.out.print("Generated Statement:\n" + statement.toString());
+
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
-/////checkstatement methods end here.
 
-
-
-
-
-
-
-
+    return statement.toString();
 }
 
-
+}
  
 
 
@@ -1252,4 +1291,4 @@ public class Server {
 
 
 
- 
+
